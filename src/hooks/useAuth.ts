@@ -25,7 +25,7 @@ export function useAuth() {
             setUser({
               uid: firebaseUser.uid,
               nama: firebaseUser.email ?? "User",
-              role: "kaur_keuangan",
+              role: "Bendahara Desa (Kaur Keuangan)",
               email: firebaseUser.email ?? "",
               lastLogin: Date.now(),
             });

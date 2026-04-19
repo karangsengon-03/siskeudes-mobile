@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Database,
   BookOpen,
+  BookMarked,
   ClipboardList,
   Wallet,
   FileText,
@@ -33,6 +34,7 @@ const navItems = [
   { label: "APBDes", href: "/dashboard/apbdes", icon: BookOpen },
   { label: "DPA", href: "/dashboard/dpa", icon: ClipboardList },
   { label: "Penatausahaan", href: "/dashboard/penatausahaan", icon: Wallet },
+  { label: "Buku Pembantu", href: "/dashboard/buku-pembantu", icon: BookMarked },
   { label: "Pelaporan", href: "/dashboard/pelaporan", icon: FileText },
   { label: "Pengaturan", href: "/dashboard/pengaturan", icon: Settings },
 ];
@@ -50,7 +52,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex flex-col w-60 min-h-screen bg-sidebar border-r">
+    <aside className="hidden md:flex flex-col w-60 h-full bg-sidebar border-r">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-5 border-b">
         <Landmark className="h-6 w-6 text-primary shrink-0" />

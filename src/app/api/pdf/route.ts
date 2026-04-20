@@ -1,11 +1,9 @@
 // src/app/api/pdf/route.ts
-// Generate PDF di server (Node.js) — hindari browser bundle issue
+// Generate PDF server-side dengan renderToBuffer
 
 import { NextRequest, NextResponse } from "next/server";
-import { pdf } from "@react-pdf/renderer";
+import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
-
-// Import semua komponen PDF (server-side, tidak ada masalah ESM)
 import { PDFAPBDesGlobal } from "@/components/modules/pelaporan/PDFAPBDesGlobal";
 import { PDFAPBDesPerKegiatan } from "@/components/modules/pelaporan/PDFAPBDesPerKegiatan";
 import { PDFAPBDesRinci } from "@/components/modules/pelaporan/PDFAPBDesRinci";
@@ -23,48 +21,28 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { type, props } = body as { type: string; props: Record<string, unknown> };
 
-    let docElement: React.ReactElement | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const componentMap: Record<string, React.ComponentType<any>> = {
+      "apbdes-global": PDFAPBDesGlobal,
+      "apbdes-per-kegiatan": PDFAPBDesPerKegiatan,
+      "apbdes-rinci": PDFAPBDesRinci,
+      "bku-bulanan": PDFBKUBulanan,
+      "buku-kas-tunai": PDFBukuKasTunai,
+      "buku-bank": PDFBukuBank,
+      "buku-pajak": PDFBukuPajak,
+      "buku-pajak-rekap": PDFBukuPajakRekap,
+      "buku-panjar": PDFBukuPanjar,
+      "realisasi-semester-i": PDFRealisasiSemesterI,
+      "dpa-per-kegiatan": PDFDPAPerKegiatan,
+    };
 
-    switch (type) {
-      case "apbdes-global":
-        docElement = React.createElement(PDFAPBDesGlobal, props as never);
-        break;
-      case "apbdes-per-kegiatan":
-        docElement = React.createElement(PDFAPBDesPerKegiatan, props as never);
-        break;
-      case "apbdes-rinci":
-        docElement = React.createElement(PDFAPBDesRinci, props as never);
-        break;
-      case "bku-bulanan":
-        docElement = React.createElement(PDFBKUBulanan, props as never);
-        break;
-      case "buku-kas-tunai":
-        docElement = React.createElement(PDFBukuKasTunai, props as never);
-        break;
-      case "buku-bank":
-        docElement = React.createElement(PDFBukuBank, props as never);
-        break;
-      case "buku-pajak":
-        docElement = React.createElement(PDFBukuPajak, props as never);
-        break;
-      case "buku-pajak-rekap":
-        docElement = React.createElement(PDFBukuPajakRekap, props as never);
-        break;
-      case "buku-panjar":
-        docElement = React.createElement(PDFBukuPanjar, props as never);
-        break;
-      case "realisasi-semester-i":
-        docElement = React.createElement(PDFRealisasiSemesterI, props as never);
-        break;
-      case "dpa-per-kegiatan":
-        docElement = React.createElement(PDFDPAPerKegiatan, props as never);
-        break;
-      default:
-        return NextResponse.json({ error: "Unknown PDF type" }, { status: 400 });
+    const Component = componentMap[type];
+    if (!Component) {
+      return NextResponse.json({ error: "Unknown PDF type" }, { status: 400 });
     }
 
-    const blob = await pdf(docElement).toBlob();
-    const buffer = Buffer.from(await blob.arrayBuffer());
+    const element = React.createElement(Component, props);
+    const buffer = await renderToBuffer(element);
 
     return new NextResponse(buffer, {
       status: 200,

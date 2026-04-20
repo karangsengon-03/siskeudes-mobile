@@ -4,7 +4,7 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { sharedStyles as S, COLOR } from "./pdfStyles";
-import { formatRupiah, formatTanggal } from "@/lib/utils";
+import { formatRupiah, formatTanggal } from "./pdfStyles";
 import type { BKUItem } from "@/lib/types";
 import type { DataDesa } from "@/hooks/useMaster";
 

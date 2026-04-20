@@ -241,3 +241,21 @@ export const sharedStyles = StyleSheet.create({
     fontStyle: "italic",
   },
 });
+
+export function formatRupiah(amount: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+export function formatTanggal(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+  } catch {
+    return dateStr;
+  }
+}

@@ -10,7 +10,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { sharedStyles as S, COLOR, FONT_FAMILY_BOLD } from "./pdfStyles";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah } from "./pdfStyles";
 import type { KegiatanAPBDes } from "@/lib/types";
 import type { DataDesa } from "@/hooks/useMaster";
 

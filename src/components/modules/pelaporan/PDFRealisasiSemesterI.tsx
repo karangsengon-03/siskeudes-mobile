@@ -5,7 +5,7 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { sharedStyles as S, COLOR } from "./pdfStyles";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah } from "./pdfStyles";
 import type { KegiatanAPBDes, SPPItem } from "@/lib/types";
 import type { DataDesa } from "@/hooks/useMaster";
 

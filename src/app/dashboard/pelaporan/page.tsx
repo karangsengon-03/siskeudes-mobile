@@ -3,6 +3,8 @@
 // src/app/dashboard/pelaporan/page.tsx
 // PDF generate client-side via pdf().toBlob() — tidak pakai API route
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState, useCallback } from "react";
 import React from "react";
 import { useDataLaporan } from "@/hooks/usePelaporan";
@@ -10,54 +12,6 @@ import { useAppStore } from "@/store/appStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileDown, Loader2, FileText, BarChart3, BookOpen, Wallet, Receipt } from "lucide-react";
-import { downloadPDFClient } from "@/lib/generatePDF";
-import dynamic from "next/dynamic";
-
-// Dynamic import semua komponen PDF — wajib ssr:false
-const PDFAPBDesGlobal = dynamic(
-  () => import("@/components/modules/pelaporan/PDFAPBDesGlobal").then((m) => m.PDFAPBDesGlobal),
-  { ssr: false, loading: () => null }
-);
-const PDFAPBDesPerKegiatan = dynamic(
-  () => import("@/components/modules/pelaporan/PDFAPBDesPerKegiatan").then((m) => m.PDFAPBDesPerKegiatan),
-  { ssr: false, loading: () => null }
-);
-const PDFAPBDesRinci = dynamic(
-  () => import("@/components/modules/pelaporan/PDFAPBDesRinci").then((m) => m.PDFAPBDesRinci),
-  { ssr: false, loading: () => null }
-);
-const PDFBKUBulanan = dynamic(
-  () => import("@/components/modules/pelaporan/PDFBKUBulanan").then((m) => m.PDFBKUBulanan),
-  { ssr: false, loading: () => null }
-);
-const PDFBukuKasTunai = dynamic(
-  () => import("@/components/modules/pelaporan/PDFBukuKasTunai").then((m) => m.PDFBukuKasTunai),
-  { ssr: false, loading: () => null }
-);
-const PDFBukuBank = dynamic(
-  () => import("@/components/modules/pelaporan/PDFBukuBank").then((m) => m.PDFBukuBank),
-  { ssr: false, loading: () => null }
-);
-const PDFBukuPajak = dynamic(
-  () => import("@/components/modules/pelaporan/PDFBukuPajak").then((m) => m.PDFBukuPajak),
-  { ssr: false, loading: () => null }
-);
-const PDFBukuPajakRekap = dynamic(
-  () => import("@/components/modules/pelaporan/PDFBukuPajakRekap").then((m) => m.PDFBukuPajakRekap),
-  { ssr: false, loading: () => null }
-);
-const PDFBukuPanjar = dynamic(
-  () => import("@/components/modules/pelaporan/PDFBukuPanjar").then((m) => m.PDFBukuPanjar),
-  { ssr: false, loading: () => null }
-);
-const PDFRealisasiSemesterI = dynamic(
-  () => import("@/components/modules/pelaporan/PDFRealisasiSemesterI").then((m) => m.PDFRealisasiSemesterI),
-  { ssr: false, loading: () => null }
-);
-const PDFDPAPerKegiatan = dynamic(
-  () => import("@/components/modules/pelaporan/PDFDPAPerKegiatan").then((m) => m.PDFDPAPerKegiatan),
-  { ssr: false, loading: () => null }
-);
 
 const BULAN_OPTS = [
   { value: "0", label: "Semua Bulan" },
@@ -75,29 +29,52 @@ const BULAN_OPTS = [
   { value: "12", label: "Desember" },
 ];
 
+async function downloadPDFClient(
+  moduleName: string,
+  exportName: string,
+  props: Record<string, unknown>,
+  filename: string
+): Promise<void> {
+  const [{ pdf }, mod] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import(`@/components/modules/pelaporan/${moduleName}`),
+  ]);
+  const Component = mod[exportName] as React.ComponentType<any>;
+  const element = React.createElement(Component, props);
+  const blob = await pdf(element as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 interface DownloadBtnProps {
   label: string;
   filename: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getElement: () => React.ReactElement<any>;
+  moduleName: string;
+  exportName: string;
+  getProps: () => Record<string, unknown>;
 }
 
-function DownloadBtn({ label, filename, getElement }: DownloadBtnProps) {
+function DownloadBtn({ label, filename, moduleName, exportName, getProps }: DownloadBtnProps) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = useCallback(async () => {
     if (loading) return;
     setLoading(true);
     try {
-      const element = getElement();
-      await downloadPDFClient(element, filename);
+      await downloadPDFClient(moduleName, exportName, getProps(), filename);
     } catch (err) {
       console.error("PDF error:", err);
       alert("Gagal generate PDF. Coba lagi.");
     } finally {
       setLoading(false);
     }
-  }, [loading, getElement, filename]);
+  }, [loading, moduleName, exportName, getProps, filename]);
 
   return (
     <button
@@ -166,17 +143,23 @@ export default function PelaporanPage() {
         <DownloadBtn
           label="APBDes Global (Pendapatan, Belanja, Pembiayaan)"
           filename={`APBDes-Global_${desaNama}_${tahun}.pdf`}
-          getElement={() => React.createElement(PDFAPBDesGlobal as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, pendapatanList, belanjaList, pembiayaanList })}
+          moduleName="PDFAPBDesGlobal"
+          exportName="PDFAPBDesGlobal"
+          getProps={() => ({ tahun, dataDesa, pendapatanList, belanjaList, pembiayaanList })}
         />
         <DownloadBtn
           label="APBDes Per Kegiatan (Anggaran & Realisasi)"
           filename={`APBDes-PerKegiatan_${desaNama}${suffix}.pdf`}
-          getElement={() => React.createElement(PDFAPBDesPerKegiatan as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, belanjaList, realisasiPerRekening })}
+          moduleName="PDFAPBDesPerKegiatan"
+          exportName="PDFAPBDesPerKegiatan"
+          getProps={() => ({ tahun, dataDesa, belanjaList, realisasiPerRekening })}
         />
         <DownloadBtn
           label="APBDes Rinci (RAB per Sub Item)"
           filename={`APBDes-Rinci_${desaNama}_${tahun}.pdf`}
-          getElement={() => React.createElement(PDFAPBDesRinci as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, belanjaList })}
+          moduleName="PDFAPBDesRinci"
+          exportName="PDFAPBDesRinci"
+          getProps={() => ({ tahun, dataDesa, belanjaList })}
         />
       </LaporanCard>
 
@@ -184,7 +167,9 @@ export default function PelaporanPage() {
         <DownloadBtn
           label="DPA Per Kegiatan (Rencana Kas 12 Bulan)"
           filename={`DPA-PerKegiatan_${desaNama}_${tahun}.pdf`}
-          getElement={() => React.createElement(PDFDPAPerKegiatan as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, belanjaList, dpaMap })}
+          moduleName="PDFDPAPerKegiatan"
+          exportName="PDFDPAPerKegiatan"
+          getProps={() => ({ tahun, dataDesa, belanjaList, dpaMap })}
         />
       </LaporanCard>
 
@@ -192,7 +177,9 @@ export default function PelaporanPage() {
         <DownloadBtn
           label={`BKU — ${bulanLabel} ${tahun}`}
           filename={`BKU_${desaNama}${suffix}.pdf`}
-          getElement={() => React.createElement(PDFBKUBulanan as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, bkuList: bkuAll, bulan })}
+          moduleName="PDFBKUBulanan"
+          exportName="PDFBKUBulanan"
+          getProps={() => ({ tahun, dataDesa, bkuList: bkuAll, bulan })}
         />
       </LaporanCard>
 
@@ -200,27 +187,37 @@ export default function PelaporanPage() {
         <DownloadBtn
           label={`Buku Pembantu Kas Tunai — ${bulanLabel}`}
           filename={`BukuKasTunai_${desaNama}${suffix}.pdf`}
-          getElement={() => React.createElement(PDFBukuKasTunai as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, rows: bukuKasTunai, bulan })}
+          moduleName="PDFBukuKasTunai"
+          exportName="PDFBukuKasTunai"
+          getProps={() => ({ tahun, dataDesa, rows: bukuKasTunai, bulan })}
         />
         <DownloadBtn
           label={`Buku Pembantu Bank — ${bulanLabel}`}
           filename={`BukuBank_${desaNama}${suffix}.pdf`}
-          getElement={() => React.createElement(PDFBukuBank as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, rows: bukuBank, bulan })}
+          moduleName="PDFBukuBank"
+          exportName="PDFBukuBank"
+          getProps={() => ({ tahun, dataDesa, rows: bukuBank, bulan })}
         />
         <DownloadBtn
           label={`Buku Pembantu Pajak — ${bulanLabel}`}
           filename={`BukuPajak_${desaNama}${suffix}.pdf`}
-          getElement={() => React.createElement(PDFBukuPajak as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, rows: bukuPajak, bulan })}
+          moduleName="PDFBukuPajak"
+          exportName="PDFBukuPajak"
+          getProps={() => ({ tahun, dataDesa, rows: bukuPajak, bulan })}
         />
         <DownloadBtn
           label={`Rekapitulasi Pajak — ${bulanLabel}`}
           filename={`RekapPajak_${desaNama}${suffix}.pdf`}
-          getElement={() => React.createElement(PDFBukuPajakRekap as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, rows: bukuPajakRekap, bulan })}
+          moduleName="PDFBukuPajakRekap"
+          exportName="PDFBukuPajakRekap"
+          getProps={() => ({ tahun, dataDesa, rows: bukuPajakRekap, bulan })}
         />
         <DownloadBtn
           label={`Buku Pembantu Panjar — ${bulanLabel}`}
           filename={`BukuPanjar_${desaNama}${suffix}.pdf`}
-          getElement={() => React.createElement(PDFBukuPanjar as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, rows: bukuPanjar, bulan })}
+          moduleName="PDFBukuPanjar"
+          exportName="PDFBukuPanjar"
+          getProps={() => ({ tahun, dataDesa, rows: bukuPanjar, bulan })}
         />
       </LaporanCard>
 
@@ -228,7 +225,9 @@ export default function PelaporanPage() {
         <DownloadBtn
           label="Realisasi APBDes Semester I (Jan–Jun)"
           filename={`RealisasiSemesterI_${desaNama}_${tahun}.pdf`}
-          getElement={() => React.createElement(PDFRealisasiSemesterI as React.ComponentType<Record<string, unknown>>, { tahun, dataDesa, belanjaList, dicairkanSPP, realisasiPerKegiatan })}
+          moduleName="PDFRealisasiSemesterI"
+          exportName="PDFRealisasiSemesterI"
+          getProps={() => ({ tahun, dataDesa, belanjaList, dicairkanSPP, realisasiPerKegiatan })}
         />
       </LaporanCard>
 

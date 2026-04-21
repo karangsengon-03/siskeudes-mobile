@@ -55,7 +55,7 @@ export function PDFAPBDesPerKegiatan({ tahun, dataDesa, belanjaList, realisasiPe
             <Text style={[S.tableHeaderCell, { width: COL.uraian }]}>Uraian</Text>
             <Text style={[S.tableHeaderCell, { width: COL.sumber }]}>Sumber</Text>
             <Text style={[S.tableHeaderCell, { width: COL.anggaran, textAlign: "right" }]}>Anggaran (Rp)</Text>
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.realisasi, textAlign: "right" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.realisasi, textAlign: "right" }]}>
               Realisasi (Rp)
             </Text>
           </View>
@@ -76,12 +76,12 @@ export function PDFAPBDesPerKegiatan({ tahun, dataDesa, belanjaList, realisasiPe
                   <View style={S.sectionRow}>
                     <Text style={[S.sectionCell, { width: COL.no, textAlign: "center" }]}>{no++}</Text>
                     <Text style={[S.sectionCell, { width: COL.kode }]}>{kegiatan.kodeKegiatan}</Text>
-                    <Text style={[{ ...S.sectionCell, flex: 1 }]}>{kegiatan.namaKegiatan}</Text>
+                    <Text style={[S.sectionCell, { flex: 1 }]}>{kegiatan.namaKegiatan}</Text>
                     <Text style={[S.sectionCell, { width: COL.sumber }]}></Text>
                     <Text style={[S.sectionCell, { width: COL.anggaran, textAlign: "right" }]}>
                       {formatRupiah(kegiatan.totalPagu)}
                     </Text>
-                    <Text style={[{ ...S.sectionCell, borderRightWidth: 0 }, { width: COL.realisasi, textAlign: "right" }]}>
+                    <Text style={[S.sectionCell, { borderRightWidth: 0, width: COL.realisasi, textAlign: "right" }]}>
                       {formatRupiah(kegiatanReal)}
                     </Text>
                   </View>
@@ -118,7 +118,7 @@ export function PDFAPBDesPerKegiatan({ tahun, dataDesa, belanjaList, realisasiPe
             <Text style={[S.grandTotalCell, { width: COL.anggaran, textAlign: "right" }]}>
               {formatRupiah(totalAnggaran)}
             </Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.realisasi, textAlign: "right" }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.realisasi, textAlign: "right" }]}>
               {formatRupiah(totalRealisasi)}
             </Text>
           </View>

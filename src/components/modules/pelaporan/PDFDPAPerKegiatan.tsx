@@ -63,7 +63,7 @@ export function PDFDPAPerKegiatan({ tahun, dataDesa, belanjaList, dpaMap }: Prop
                 {b}
               </Text>
             ))}
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL_TOTAL_DPA, textAlign: "right" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL_TOTAL_DPA, textAlign: "right" }]}>
               Total DPA
             </Text>
           </View>
@@ -126,7 +126,7 @@ export function PDFDPAPerKegiatan({ tahun, dataDesa, belanjaList, dpaMap }: Prop
                 {v > 0 ? formatRupiah(v) : ""}
               </Text>
             ))}
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL_TOTAL_DPA, textAlign: "right", fontSize: 6.5 }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL_TOTAL_DPA, textAlign: "right", fontSize: 6.5 }]}>
               {formatRupiah(grandTotalDPA)}
             </Text>
           </View>

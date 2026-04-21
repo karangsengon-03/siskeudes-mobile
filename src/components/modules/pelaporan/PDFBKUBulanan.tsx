@@ -55,7 +55,7 @@ export function PDFBKUBulanan({ tahun, dataDesa, bkuList, bulan }: Props) {
             <Text style={[S.tableHeaderCell, { width: COL.uraian }]}>Uraian</Text>
             <Text style={[S.tableHeaderCell, { width: COL.penerimaan, textAlign: "right" }]}>Penerimaan (Rp)</Text>
             <Text style={[S.tableHeaderCell, { width: COL.pengeluaran, textAlign: "right" }]}>Pengeluaran (Rp)</Text>
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.saldo, textAlign: "right" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.saldo, textAlign: "right" }]}>
               Saldo (Rp)
             </Text>
           </View>
@@ -96,7 +96,7 @@ export function PDFBKUBulanan({ tahun, dataDesa, bkuList, bulan }: Props) {
             <Text style={[S.grandTotalCell, { width: COL.pengeluaran, textAlign: "right" }]}>
               {formatRupiah(totalPengeluaran)}
             </Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.saldo, textAlign: "right" }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.saldo, textAlign: "right" }]}>
               {formatRupiah(saldoAkhir)}
             </Text>
           </View>

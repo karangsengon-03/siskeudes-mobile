@@ -81,7 +81,7 @@ export function PDFRealisasiSemesterI({ tahun, dataDesa, belanjaList, dicairkanS
             <Text style={[S.tableHeaderCell, { width: COL.persen, textAlign: "right" }]}>%</Text>
             <Text style={[S.tableHeaderCell, { width: COL.realisasi, textAlign: "right" }]}>Realisasi s/d skrg (Rp)</Text>
             <Text style={[S.tableHeaderCell, { width: COL.persen, textAlign: "right" }]}>%</Text>
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.sisa, textAlign: "right" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.sisa, textAlign: "right" }]}>
               Sisa (Rp)
             </Text>
           </View>
@@ -123,7 +123,7 @@ export function PDFRealisasiSemesterI({ tahun, dataDesa, belanjaList, dicairkanS
             <Text style={[S.grandTotalCell, { width: COL.persen, textAlign: "right" }]}>{persen(totalSemI, totalAnggaran)}</Text>
             <Text style={[S.grandTotalCell, { width: COL.realisasi, textAlign: "right" }]}>{formatRupiah(totalRealisasi)}</Text>
             <Text style={[S.grandTotalCell, { width: COL.persen, textAlign: "right" }]}>{persen(totalRealisasi, totalAnggaran)}</Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.sisa, textAlign: "right" }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.sisa, textAlign: "right" }]}>
               {formatRupiah(totalSisa)}
             </Text>
           </View>

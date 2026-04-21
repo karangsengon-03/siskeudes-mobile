@@ -44,7 +44,7 @@ export function PDFBukuBank({ tahun, dataDesa, rows, bulan }: Props) {
             <Text style={[S.tableHeaderCell, { width: COL.nomorRef }]}>No. Referensi</Text>
             <Text style={[S.tableHeaderCell, { width: COL.uraian }]}>Uraian</Text>
             <Text style={[S.tableHeaderCell, { width: COL.penerimaan, textAlign: "right" }]}>Debit (Rp)</Text>
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.pengeluaran, textAlign: "right" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.pengeluaran, textAlign: "right" }]}>
               Kredit (Rp)
             </Text>
           </View>
@@ -78,13 +78,13 @@ export function PDFBukuBank({ tahun, dataDesa, rows, bulan }: Props) {
             <Text style={[S.grandTotalCell, { width: COL.penerimaan, textAlign: "right" }]}>
               {formatRupiah(totalPenerimaan)}
             </Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.pengeluaran, textAlign: "right" }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.pengeluaran, textAlign: "right" }]}>
               {formatRupiah(totalPengeluaran)}
             </Text>
           </View>
           <View style={S.totalRow}>
             <Text style={[S.totalCell, { flex: 1 }]}>SALDO BANK</Text>
-            <Text style={[{ ...S.totalCell, borderRightWidth: 0 }, { width: COL.pengeluaran, textAlign: "right" }]}>
+            <Text style={[S.totalCell, { borderRightWidth: 0, width: COL.pengeluaran, textAlign: "right" }]}>
               {formatRupiah(saldoAkhir)}
             </Text>
           </View>

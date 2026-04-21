@@ -44,7 +44,7 @@ export function PDFBukuPanjar({ tahun, dataDesa, rows, bulan }: Props) {
             <Text style={[S.tableHeaderCell, { width: COL.uraian }]}>Uraian</Text>
             <Text style={[S.tableHeaderCell, { width: COL.panjar, textAlign: "right" }]}>Nilai Panjar (Rp)</Text>
             <Text style={[S.tableHeaderCell, { width: COL.sisa, textAlign: "right" }]}>Sisa (Rp)</Text>
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.status, textAlign: "center" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.status, textAlign: "center" }]}>
               Status
             </Text>
           </View>
@@ -84,7 +84,7 @@ export function PDFBukuPanjar({ tahun, dataDesa, rows, bulan }: Props) {
             <Text style={[S.grandTotalCell, { width: COL.sisa, textAlign: "right" }]}>
               {formatRupiah(totalSisa)}
             </Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.status }]}></Text>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.status }]}></Text>
           </View>
         </View>
 

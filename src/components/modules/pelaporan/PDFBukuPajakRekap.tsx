@@ -44,7 +44,7 @@ export function PDFBukuPajakRekap({ tahun, dataDesa, rows, bulan }: Props) {
             <Text style={[S.tableHeaderCell, { width: COL.nama }]}>Nama Pajak</Text>
             <Text style={[S.tableHeaderCell, { width: COL.dipungut, textAlign: "right" }]}>Dipungut (Rp)</Text>
             <Text style={[S.tableHeaderCell, { width: COL.disetor, textAlign: "right" }]}>Disetor (Rp)</Text>
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.sisa, textAlign: "right" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.sisa, textAlign: "right" }]}>
               Sisa (Rp)
             </Text>
           </View>
@@ -82,7 +82,7 @@ export function PDFBukuPajakRekap({ tahun, dataDesa, rows, bulan }: Props) {
             <Text style={[S.grandTotalCell, { width: COL.disetor, textAlign: "right" }]}>
               {formatRupiah(totalDisetor)}
             </Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.sisa, textAlign: "right" }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.sisa, textAlign: "right" }]}>
               {formatRupiah(totalSisa)}
             </Text>
           </View>

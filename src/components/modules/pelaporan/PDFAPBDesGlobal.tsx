@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { sharedStyles as S, COLOR, FONT_FAMILY_BOLD } from "./pdfStyles";
+import { sharedStyles as S, COLOR } from "./pdfStyles";
 import { formatRupiah } from "./pdfStyles";
 import type { PendapatanItem, KegiatanAPBDes, PembiayaanItem } from "@/lib/types";
 import type { DataDesa } from "@/hooks/useMaster";
@@ -38,8 +38,8 @@ function HeaderRow() {
       <Text style={[S.tableHeaderCell, { width: COL.uraian }]}>Uraian</Text>
       <Text style={[S.tableHeaderCell, { width: COL.sumber }]}>Sumber Dana</Text>
       <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.anggaran, textAlign: "right" }]}>
-              Anggaran (Rp)
-            </Text>
+        Anggaran (Rp)
+      </Text>
     </View>
   );
 }
@@ -128,7 +128,7 @@ export function PDFAPBDesGlobal({ tahun, dataDesa, pendapatanList, belanjaList, 
             <Text style={[S.totalCell, { width: COL.kode }]}></Text>
             <Text style={[S.totalCell, { width: COL.uraian }]}>JUMLAH BELANJA</Text>
             <Text style={[S.totalCell, { width: COL.sumber }]}></Text>
-            <Text style={[{ ...S.totalCell, borderRightWidth: 0 }, { width: COL.anggaran, textAlign: "right" }]}>
+            <Text style={[S.totalCell, { borderRightWidth: 0, width: COL.anggaran, textAlign: "right" }]}>
               {formatRupiah(totalBelanja)}
             </Text>
           </View>
@@ -139,7 +139,7 @@ export function PDFAPBDesGlobal({ tahun, dataDesa, pendapatanList, belanjaList, 
             <Text style={[S.grandTotalCell, { width: COL.kode }]}></Text>
             <Text style={[S.grandTotalCell, { width: COL.uraian }]}>SURPLUS / (DEFISIT)</Text>
             <Text style={[S.grandTotalCell, { width: COL.sumber }]}></Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.anggaran, textAlign: "right" }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.anggaran, textAlign: "right" }]}>
               {formatRupiah(surplusDefisit)}
             </Text>
           </View>
@@ -163,7 +163,7 @@ export function PDFAPBDesGlobal({ tahun, dataDesa, pendapatanList, belanjaList, 
             <Text style={[S.totalCell, { width: COL.kode }]}></Text>
             <Text style={[S.totalCell, { width: COL.uraian }]}>Jumlah Penerimaan Pembiayaan</Text>
             <Text style={[S.totalCell, { width: COL.sumber }]}></Text>
-            <Text style={[{ ...S.totalCell, borderRightWidth: 0 }, { width: COL.anggaran, textAlign: "right" }]}>
+            <Text style={[S.totalCell, { borderRightWidth: 0, width: COL.anggaran, textAlign: "right" }]}>
               {formatRupiah(pembiayaanMasuk)}
             </Text>
           </View>
@@ -185,7 +185,7 @@ export function PDFAPBDesGlobal({ tahun, dataDesa, pendapatanList, belanjaList, 
             <Text style={[S.grandTotalCell, { width: COL.kode }]}></Text>
             <Text style={[S.grandTotalCell, { width: COL.uraian }]}>PEMBIAYAAN NETTO (a - b)</Text>
             <Text style={[S.grandTotalCell, { width: COL.sumber }]}></Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.anggaran, textAlign: "right" }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.anggaran, textAlign: "right" }]}>
               {formatRupiah(pembiayaanMasuk - pembiayaanKeluar)}
             </Text>
           </View>

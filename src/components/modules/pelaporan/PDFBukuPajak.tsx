@@ -56,7 +56,7 @@ export function PDFBukuPajak({ tahun, dataDesa, rows, bulan }: Props) {
             <Text style={[S.tableHeaderCell, { width: COL.tarif, textAlign: "right" }]}>Tarif</Text>
             <Text style={[S.tableHeaderCell, { width: COL.dpp, textAlign: "right" }]}>DPP (Rp)</Text>
             <Text style={[S.tableHeaderCell, { width: COL.jumlah, textAlign: "right" }]}>Jumlah (Rp)</Text>
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.status, textAlign: "center" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.status, textAlign: "center" }]}>
               Status
             </Text>
           </View>
@@ -101,17 +101,17 @@ export function PDFBukuPajak({ tahun, dataDesa, rows, bulan }: Props) {
             <Text style={[S.grandTotalCell, { width: COL.jumlah, textAlign: "right" }]}>
               {formatRupiah(totalDipungut)}
             </Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.status }]}></Text>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.status }]}></Text>
           </View>
           <View style={S.totalRow}>
             <Text style={[S.totalCell, { flex: 1 }]}>Sudah Disetor</Text>
             <Text style={[S.totalCell, { width: COL.jumlah, textAlign: "right" }]}>{formatRupiah(totalDisetor)}</Text>
-            <Text style={[{ ...S.totalCell, borderRightWidth: 0 }, { width: COL.status }]}></Text>
+            <Text style={[S.totalCell, { borderRightWidth: 0, width: COL.status }]}></Text>
           </View>
           <View style={S.totalRow}>
             <Text style={[S.totalCell, { flex: 1 }]}>Belum Disetor</Text>
             <Text style={[S.totalCell, { width: COL.jumlah, textAlign: "right" }]}>{formatRupiah(totalDipungut - totalDisetor)}</Text>
-            <Text style={[{ ...S.totalCell, borderRightWidth: 0 }, { width: COL.status }]}></Text>
+            <Text style={[S.totalCell, { borderRightWidth: 0, width: COL.status }]}></Text>
           </View>
         </View>
 

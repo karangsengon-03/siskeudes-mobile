@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { sharedStyles as S, COLOR, FONT_FAMILY_BOLD } from "./pdfStyles";
+import { sharedStyles as S, COLOR } from "./pdfStyles";
 import { formatRupiah } from "./pdfStyles";
 import type { KegiatanAPBDes } from "@/lib/types";
 import type { DataDesa } from "@/hooks/useMaster";
@@ -55,7 +55,7 @@ export function PDFAPBDesRinci({ tahun, dataDesa, belanjaList }: Props) {
             <Text style={[S.tableHeaderCell, { width: COL.vol, textAlign: "right" }]}>Vol.</Text>
             <Text style={[S.tableHeaderCell, { width: COL.sat }]}>Sat.</Text>
             <Text style={[S.tableHeaderCell, { width: COL.harga, textAlign: "right" }]}>Harga Sat. (Rp)</Text>
-            <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.jumlah, textAlign: "right" }]}>
+            <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.jumlah, textAlign: "right" }]}>
               Jumlah (Rp)
             </Text>
           </View>
@@ -70,7 +70,7 @@ export function PDFAPBDesRinci({ tahun, dataDesa, belanjaList }: Props) {
                 {/* Baris kegiatan (section heading) */}
                 <View style={S.sectionRow}>
                   <Text style={[S.sectionCell, { width: COL.no }]}>{no++}</Text>
-                  <Text style={[{ ...S.sectionCell, flex: 1 }]}>
+                  <Text style={[S.sectionCell, { flex: 1 }]}>
                     [{kegiatan.bidangNama} / {kegiatan.subBidangNama}] {kegiatan.namaKegiatan}
                   </Text>
                 </View>
@@ -117,7 +117,7 @@ export function PDFAPBDesRinci({ tahun, dataDesa, belanjaList }: Props) {
                   <Text style={[S.totalCell, { width: COL.vol }]}></Text>
                   <Text style={[S.totalCell, { width: COL.sat }]}></Text>
                   <Text style={[S.totalCell, { width: COL.harga }]}></Text>
-                  <Text style={[{ ...S.totalCell, borderRightWidth: 0 }, { width: COL.jumlah, textAlign: "right" }]}>
+                  <Text style={[S.totalCell, { borderRightWidth: 0, width: COL.jumlah, textAlign: "right" }]}>
                     {formatRupiah(kegiatan.totalPagu)}
                   </Text>
                 </View>
@@ -129,7 +129,7 @@ export function PDFAPBDesRinci({ tahun, dataDesa, belanjaList }: Props) {
           <View style={S.grandTotalRow}>
             <Text style={[S.grandTotalCell, { width: COL.no }]}></Text>
             <Text style={[S.grandTotalCell, { flex: 1 }]}>TOTAL BELANJA</Text>
-            <Text style={[{ ...S.grandTotalCell, borderRightWidth: 0 }, { width: COL.jumlah, textAlign: "right" }]}>
+            <Text style={[S.grandTotalCell, { borderRightWidth: 0, width: COL.jumlah, textAlign: "right" }]}>
               {formatRupiah(totalBelanja)}
             </Text>
           </View>

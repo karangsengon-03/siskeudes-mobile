@@ -3,6 +3,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
+// Gunakan React dari @react-pdf/renderer scope, bukan dari Next.js
+import * as ReactPDF from "@react-pdf/renderer";
 import React from "react";
 import { PDFAPBDesGlobal } from "@/components/modules/pelaporan/PDFAPBDesGlobal";
 import { PDFAPBDesPerKegiatan } from "@/components/modules/pelaporan/PDFAPBDesPerKegiatan";
@@ -41,7 +43,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unknown PDF type" }, { status: 400 });
     }
 
-    const element = React.createElement(Component, props);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = React.createElement(Component, props as any);
     const buffer = await renderToBuffer(element);
 
     return new NextResponse(new Uint8Array(buffer), {

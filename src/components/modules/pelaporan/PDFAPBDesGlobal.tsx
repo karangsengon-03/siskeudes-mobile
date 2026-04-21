@@ -37,9 +37,9 @@ function HeaderRow() {
       <Text style={[S.tableHeaderCell, { width: COL.kode }]}>Kode Rek.</Text>
       <Text style={[S.tableHeaderCell, { width: COL.uraian }]}>Uraian</Text>
       <Text style={[S.tableHeaderCell, { width: COL.sumber }]}>Sumber Dana</Text>
-      <Text style={[{ ...S.tableHeaderCell, borderRightWidth: 0 }, { width: COL.anggaran, textAlign: "right" }]}>
-        Anggaran (Rp)
-      </Text>
+      <Text style={[S.tableHeaderCell, { borderRightWidth: 0, width: COL.anggaran, textAlign: "right" }]}>
+              Anggaran (Rp)
+            </Text>
     </View>
   );
 }
@@ -101,7 +101,7 @@ export function PDFAPBDesGlobal({ tahun, dataDesa, pendapatanList, belanjaList, 
             <Text style={[S.totalCell, { width: COL.kode }]}></Text>
             <Text style={[S.totalCell, { width: COL.uraian }]}>JUMLAH PENDAPATAN</Text>
             <Text style={[S.totalCell, { width: COL.sumber }]}></Text>
-            <Text style={[{ ...S.totalCell, borderRightWidth: 0 }, { width: COL.anggaran, textAlign: "right" }]}>
+            <Text style={[S.totalCell, { borderRightWidth: 0, width: COL.anggaran, textAlign: "right" }]}>
               {formatRupiah(totalPendapatan)}
             </Text>
           </View>

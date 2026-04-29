@@ -319,7 +319,7 @@ export interface APBDesGlobalProps {
   filename?: string;
 }
 
-export async function downloadPDF_APBDesGlobal(p: APBDesGlobalProps): Promise<void> {
+export async function downloadPDF_APBDesGlobal(p: APBDesGlobalProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("portrait");
   const W = 210, H = 297, ML = 12, MB = 40;
   const x = ML;
@@ -417,6 +417,7 @@ export async function downloadPDF_APBDesGlobal(p: APBDesGlobalProps): Promise<vo
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `APBDes-Global_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${p.tahun}.pdf`);
 }
 
@@ -430,7 +431,7 @@ export interface APBDesPerKegiatanProps {
   filename?: string;
 }
 
-export async function downloadPDF_APBDesPerKegiatan(p: APBDesPerKegiatanProps): Promise<void> {
+export async function downloadPDF_APBDesPerKegiatan(p: APBDesPerKegiatanProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("portrait");
   const W = 210, H = 297, ML = 12, MB = 40;
   const x = ML;
@@ -506,6 +507,7 @@ export async function downloadPDF_APBDesPerKegiatan(p: APBDesPerKegiatanProps): 
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `APBDes-PerKegiatan_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${p.tahun}.pdf`);
 }
 
@@ -518,7 +520,7 @@ export interface APBDesRinciProps {
   filename?: string;
 }
 
-export async function downloadPDF_APBDesRinci(p: APBDesRinciProps): Promise<void> {
+export async function downloadPDF_APBDesRinci(p: APBDesRinciProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("portrait");
   const W = 210, H = 297, ML = 12, MB = 40;
   const x = ML;
@@ -605,6 +607,7 @@ export async function downloadPDF_APBDesRinci(p: APBDesRinciProps): Promise<void
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `APBDes-Rinci_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${p.tahun}.pdf`);
 }
 
@@ -618,7 +621,7 @@ export interface DPAPerKegiatanProps {
   filename?: string;
 }
 
-export async function downloadPDF_DPAPerKegiatan(p: DPAPerKegiatanProps): Promise<void> {
+export async function downloadPDF_DPAPerKegiatan(p: DPAPerKegiatanProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("landscape");
   const W = 297, H = 210, ML = 10, MB = 36;
   const x = ML;
@@ -702,6 +705,7 @@ export async function downloadPDF_DPAPerKegiatan(p: DPAPerKegiatanProps): Promis
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `DPA-PerKegiatan_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${p.tahun}.pdf`);
 }
 
@@ -715,7 +719,7 @@ export interface BKUBulananProps {
   filename?: string;
 }
 
-export async function downloadPDF_BKUBulanan(p: BKUBulananProps): Promise<void> {
+export async function downloadPDF_BKUBulanan(p: BKUBulananProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("landscape");
   const W = 297, H = 210, ML = 10, MB = 36;
   const x = ML;
@@ -770,6 +774,7 @@ export async function downloadPDF_BKUBulanan(p: BKUBulananProps): Promise<void> 
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `BKU_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${periodeLabel(p.bulan, p.tahun).replace(/ /g, "-")}.pdf`);
 }
 
@@ -794,8 +799,9 @@ async function downloadPDF_Ledger(
   desa: DataDesa | null,
   tahun: string,
   bulan: number | undefined,
-  filename: string
-): Promise<void> {
+  filename: string,
+  returnBlob = false
+): Promise<void | Blob> {
   const doc = await newDoc("portrait");
   const W = 210, H = 297, ML = 12, MB = 40;
   const x = ML;
@@ -849,6 +855,10 @@ async function downloadPDF_Ledger(
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
+
+
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(filename);
 }
 
@@ -862,8 +872,8 @@ export interface BukuKasTunaiProps {
   filename?: string;
 }
 
-export async function downloadPDF_BukuKasTunai(p: BukuKasTunaiProps): Promise<void> {
-  await downloadPDF_Ledger(
+export async function downloadPDF_BukuKasTunai(p: BukuKasTunaiProps, returnBlob = false): Promise<void | Blob> {
+  return await downloadPDF_Ledger(
     "BUKU PEMBANTU KAS TUNAI", "Kas Masuk (Rp)", "Kas Keluar (Rp)", "SALDO KAS TUNAI",
     p.rows, p.dataDesa, p.tahun, p.bulan,
     p.filename ?? `BukuKasTunai_${(p.dataDesa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${periodeLabel(p.bulan, p.tahun).replace(/ /g, "-")}.pdf`
@@ -880,8 +890,8 @@ export interface BukuBankProps {
   filename?: string;
 }
 
-export async function downloadPDF_BukuBank(p: BukuBankProps): Promise<void> {
-  await downloadPDF_Ledger(
+export async function downloadPDF_BukuBank(p: BukuBankProps, returnBlob = false): Promise<void | Blob> {
+  return await downloadPDF_Ledger(
     "BUKU PEMBANTU BANK", "Debit (Rp)", "Kredit (Rp)", "SALDO BANK",
     p.rows, p.dataDesa, p.tahun, p.bulan,
     p.filename ?? `BukuBank_${(p.dataDesa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${periodeLabel(p.bulan, p.tahun).replace(/ /g, "-")}.pdf`
@@ -898,7 +908,7 @@ export interface BukuPajakProps {
   filename?: string;
 }
 
-export async function downloadPDF_BukuPajak(p: BukuPajakProps): Promise<void> {
+export async function downloadPDF_BukuPajak(p: BukuPajakProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("landscape");
   const W = 297, H = 210, ML = 10, MB = 36;
   const x = ML;
@@ -957,6 +967,7 @@ export async function downloadPDF_BukuPajak(p: BukuPajakProps): Promise<void> {
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `BukuPajak_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${periodeLabel(p.bulan, p.tahun).replace(/ /g, "-")}.pdf`);
 }
 
@@ -970,7 +981,7 @@ export interface BukuPajakRekapProps {
   filename?: string;
 }
 
-export async function downloadPDF_BukuPajakRekap(p: BukuPajakRekapProps): Promise<void> {
+export async function downloadPDF_BukuPajakRekap(p: BukuPajakRekapProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("portrait");
   const W = 210, H = 297, ML = 12, MB = 40;
   const x = ML;
@@ -1023,6 +1034,7 @@ export async function downloadPDF_BukuPajakRekap(p: BukuPajakRekapProps): Promis
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `RekapPajak_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${periodeLabel(p.bulan, p.tahun).replace(/ /g, "-")}.pdf`);
 }
 
@@ -1036,7 +1048,7 @@ export interface BukuPanjarProps {
   filename?: string;
 }
 
-export async function downloadPDF_BukuPanjar(p: BukuPanjarProps): Promise<void> {
+export async function downloadPDF_BukuPanjar(p: BukuPanjarProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("portrait");
   const W = 210, H = 297, ML = 12, MB = 40;
   const x = ML;
@@ -1089,6 +1101,7 @@ export async function downloadPDF_BukuPanjar(p: BukuPanjarProps): Promise<void> 
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `BukuPanjar_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${periodeLabel(p.bulan, p.tahun).replace(/ /g, "-")}.pdf`);
 }
 
@@ -1103,7 +1116,7 @@ export interface RealisasiSemesterIProps {
   filename?: string;
 }
 
-export async function downloadPDF_RealisasiSemesterI(p: RealisasiSemesterIProps): Promise<void> {
+export async function downloadPDF_RealisasiSemesterI(p: RealisasiSemesterIProps, returnBlob = false): Promise<void | Blob> {
   const doc = await newDoc("landscape");
   const W = 297, H = 210, ML = 10, MB = 36;
   const x = ML;
@@ -1192,5 +1205,6 @@ export async function downloadPDF_RealisasiSemesterI(p: RealisasiSemesterIProps)
     { label: "Bendahara Desa,", nama: desa?.namaBendahara ?? "" },
   ]);
 
+  if (returnBlob) return doc.output("blob") as Blob;
   doc.save(p.filename ?? `RealisasiSemesterI_${(desa?.namaDesa ?? "Desa").replace(/ /g, "-")}_${p.tahun}.pdf`);
 }

@@ -1,69 +1,166 @@
 "use client";
 
 // src/app/dashboard/pelaporan/page.tsx
-// Generate PDF laporan keuangan — menggunakan jsPDF via generatePDF.ts
+// Generate PDF laporan keuangan — preview dulu di modal, baru download
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useDataLaporan } from "@/hooks/usePelaporan";
 import { useAppStore } from "@/store/appStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FileDown, Loader2, FileText, BarChart3, BookOpen, Wallet, Receipt } from "lucide-react";
+import {
+  FileDown, Loader2, FileText, BarChart3, BookOpen,
+  Wallet, Receipt, Eye, X, Download,
+} from "lucide-react";
 
 const BULAN_OPTS = [
-  { value: "0", label: "Semua Bulan" },
-  { value: "1", label: "Januari" },
-  { value: "2", label: "Februari" },
-  { value: "3", label: "Maret" },
-  { value: "4", label: "April" },
-  { value: "5", label: "Mei" },
-  { value: "6", label: "Juni" },
-  { value: "7", label: "Juli" },
-  { value: "8", label: "Agustus" },
-  { value: "9", label: "September" },
+  { value: "0",  label: "Semua Bulan" },
+  { value: "1",  label: "Januari" },
+  { value: "2",  label: "Februari" },
+  { value: "3",  label: "Maret" },
+  { value: "4",  label: "April" },
+  { value: "5",  label: "Mei" },
+  { value: "6",  label: "Juni" },
+  { value: "7",  label: "Juli" },
+  { value: "8",  label: "Agustus" },
+  { value: "9",  label: "September" },
   { value: "10", label: "Oktober" },
   { value: "11", label: "November" },
   { value: "12", label: "Desember" },
 ];
 
-// ─── Download button ──────────────────────────────────────────────────────────
+// ─── PDF Preview Modal ────────────────────────────────────────────────────────
 
-interface DownloadBtnProps {
-  label: string;
-  onClick: () => Promise<void>;
+interface PDFPreviewModalProps {
+  blobUrl: string;
+  filename: string;
+  onClose: () => void;
 }
 
-function DownloadBtn({ label, onClick }: DownloadBtnProps) {
+function PDFPreviewModal({ blobUrl, filename, onClose }: PDFPreviewModalProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Tutup modal saat klik overlay (luar iframe)
+  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
+    if (e.target === overlayRef.current) onClose();
+  }, [onClose]);
+
+  // Tutup modal saat tekan Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const handleDownload = useCallback(() => {
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [blobUrl, filename]);
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={handleOverlayClick}
+      className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm"
+    >
+      {/* Header bar */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-card border-b border-border shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-medium truncate">{filename}</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleDownload}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Download
+          </button>
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent transition-colors"
+          >
+            <X className="h-4 w-4" />
+            Tutup
+          </button>
+        </div>
+      </div>
+
+      {/* PDF iframe */}
+      <div className="flex-1 overflow-hidden p-3">
+        <iframe
+          src={blobUrl}
+          className="w-full h-full rounded-md border border-border bg-white"
+          title={filename}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Preview button ───────────────────────────────────────────────────────────
+
+interface PreviewBtnProps {
+  label: string;
+  onPreview: () => Promise<{ blobUrl: string; filename: string }>;
+}
+
+function PreviewBtn({ label, onPreview }: PreviewBtnProps) {
   const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<{ blobUrl: string; filename: string } | null>(null);
+
+  // Revoke blob URL saat modal ditutup untuk hindari memory leak
+  const handleClose = useCallback(() => {
+    if (preview) {
+      URL.revokeObjectURL(preview.blobUrl);
+      setPreview(null);
+    }
+  }, [preview]);
 
   const handleClick = useCallback(async () => {
     if (loading) return;
     setLoading(true);
     try {
-      await onClick();
+      const result = await onPreview();
+      setPreview(result);
     } catch (err) {
       console.error("PDF error:", err);
       alert("Gagal generate PDF. Coba lagi.\n" + String(err));
     } finally {
       setLoading(false);
     }
-  }, [loading, onClick]);
+  }, [loading, onPreview]);
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed w-full"
-    >
-      {loading
-        ? <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-        : <FileDown className="h-4 w-4 shrink-0 text-primary" />}
-      <span className="text-left leading-tight">
-        {loading ? "Menyiapkan PDF..." : label}
-      </span>
-    </button>
+    <>
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed w-full"
+      >
+        {loading
+          ? <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+          : <Eye className="h-4 w-4 shrink-0 text-primary" />}
+        <span className="text-left leading-tight">
+          {loading ? "Menyiapkan PDF..." : label}
+        </span>
+      </button>
+
+      {preview && (
+        <PDFPreviewModal
+          blobUrl={preview.blobUrl}
+          filename={preview.filename}
+          onClose={handleClose}
+        />
+      )}
+    </>
   );
 }
 
@@ -108,15 +205,19 @@ export default function PelaporanPage() {
     : `_${tahun}`;
   const desaNama = (dataDesa?.namaDesa ?? "Desa").replace(/ /g, "-");
 
-  // ── Lazy-import generatePDF dan panggil fungsi ──────────────────────────────
-  const makePDF = useCallback(
-    (fnName: string, extraProps?: Record<string, unknown>) => async () => {
-      const mod = await import("@/lib/generatePDF");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fn = (mod as any)[fnName];
-      if (typeof fn !== "function") throw new Error(`PDF function "${fnName}" not found`);
-      await fn({ tahun, dataDesa, ...extraProps });
-    },
+  // Helper: generate blob URL (bukan auto-download)
+  const makePDFBlob = useCallback(
+    (fnName: string, filename: string, extraProps?: Record<string, unknown>) =>
+      async (): Promise<{ blobUrl: string; filename: string }> => {
+        const mod = await import("@/lib/generatePDF");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fn = (mod as any)[fnName];
+        if (typeof fn !== "function") throw new Error(`PDF function "${fnName}" not found`);
+        // Panggil fungsi dengan returnBlob: true agar tidak auto doc.save()
+        const blob: Blob = await fn({ tahun, dataDesa, ...extraProps }, true);
+        const blobUrl = URL.createObjectURL(blob);
+        return { blobUrl, filename };
+      },
     [tahun, dataDesa]
   );
 
@@ -136,7 +237,7 @@ export default function PelaporanPage() {
         <div>
           <h1 className="text-base font-semibold">Pelaporan</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Generate PDF laporan keuangan — Tahun {tahun}
+            Preview PDF laporan keuangan — Tahun {tahun}
           </p>
         </div>
         <Select value={bulanStr} onValueChange={setBulanStr}>
@@ -153,103 +254,92 @@ export default function PelaporanPage() {
 
       {/* ── APBDes ── */}
       <LaporanCard icon={<FileText className="h-4 w-4" />} title="APBDes">
-        <DownloadBtn
+        <PreviewBtn
           label="APBDes Global (Pendapatan, Belanja, Pembiayaan)"
-          onClick={makePDF("downloadPDF_APBDesGlobal", {
-            pendapatanList, belanjaList, pembiayaanList,
-            filename: `APBDes-Global_${desaNama}_${tahun}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_APBDesGlobal",
+            `APBDes-Global_${desaNama}_${tahun}.pdf`,
+            { pendapatanList, belanjaList, pembiayaanList })}
         />
-        <DownloadBtn
+        <PreviewBtn
           label="APBDes Per Kegiatan (Anggaran & Realisasi)"
-          onClick={makePDF("downloadPDF_APBDesPerKegiatan", {
-            belanjaList, realisasiPerRekening,
-            filename: `APBDes-PerKegiatan_${desaNama}${suffix}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_APBDesPerKegiatan",
+            `APBDes-PerKegiatan_${desaNama}${suffix}.pdf`,
+            { belanjaList, realisasiPerRekening })}
         />
-        <DownloadBtn
+        <PreviewBtn
           label="APBDes Rinci (RAB per Sub Item)"
-          onClick={makePDF("downloadPDF_APBDesRinci", {
-            belanjaList,
-            filename: `APBDes-Rinci_${desaNama}_${tahun}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_APBDesRinci",
+            `APBDes-Rinci_${desaNama}_${tahun}.pdf`,
+            { belanjaList })}
         />
       </LaporanCard>
 
       {/* ── DPA ── */}
       <LaporanCard icon={<BarChart3 className="h-4 w-4" />} title="DPA">
-        <DownloadBtn
+        <PreviewBtn
           label="DPA Per Kegiatan (Rencana Kas 12 Bulan)"
-          onClick={makePDF("downloadPDF_DPAPerKegiatan", {
-            belanjaList, dpaMap,
-            filename: `DPA-PerKegiatan_${desaNama}_${tahun}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_DPAPerKegiatan",
+            `DPA-PerKegiatan_${desaNama}_${tahun}.pdf`,
+            { belanjaList, dpaMap })}
         />
       </LaporanCard>
 
       {/* ── BKU ── */}
       <LaporanCard icon={<BookOpen className="h-4 w-4" />} title="Buku Kas Umum (BKU)">
-        <DownloadBtn
+        <PreviewBtn
           label={`BKU — ${bulanLabel} ${tahun}`}
-          onClick={makePDF("downloadPDF_BKUBulanan", {
-            bkuList: bkuAll, bulan,
-            filename: `BKU_${desaNama}${suffix}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_BKUBulanan",
+            `BKU_${desaNama}${suffix}.pdf`,
+            { bkuList: bkuAll, bulan })}
         />
       </LaporanCard>
 
       {/* ── Buku Pembantu ── */}
       <LaporanCard icon={<Wallet className="h-4 w-4" />} title="Buku Pembantu">
-        <DownloadBtn
+        <PreviewBtn
           label={`Buku Pembantu Kas Tunai — ${bulanLabel}`}
-          onClick={makePDF("downloadPDF_BukuKasTunai", {
-            rows: bukuKasTunai, bulan,
-            filename: `BukuKasTunai_${desaNama}${suffix}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_BukuKasTunai",
+            `BukuKasTunai_${desaNama}${suffix}.pdf`,
+            { rows: bukuKasTunai, bulan })}
         />
-        <DownloadBtn
+        <PreviewBtn
           label={`Buku Pembantu Bank — ${bulanLabel}`}
-          onClick={makePDF("downloadPDF_BukuBank", {
-            rows: bukuBank, bulan,
-            filename: `BukuBank_${desaNama}${suffix}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_BukuBank",
+            `BukuBank_${desaNama}${suffix}.pdf`,
+            { rows: bukuBank, bulan })}
         />
-        <DownloadBtn
+        <PreviewBtn
           label={`Buku Pembantu Pajak — ${bulanLabel}`}
-          onClick={makePDF("downloadPDF_BukuPajak", {
-            rows: bukuPajak, bulan,
-            filename: `BukuPajak_${desaNama}${suffix}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_BukuPajak",
+            `BukuPajak_${desaNama}${suffix}.pdf`,
+            { rows: bukuPajak, bulan })}
         />
-        <DownloadBtn
+        <PreviewBtn
           label={`Rekapitulasi Pajak — ${bulanLabel}`}
-          onClick={makePDF("downloadPDF_BukuPajakRekap", {
-            rows: bukuPajakRekap, bulan,
-            filename: `RekapPajak_${desaNama}${suffix}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_BukuPajakRekap",
+            `RekapPajak_${desaNama}${suffix}.pdf`,
+            { rows: bukuPajakRekap, bulan })}
         />
-        <DownloadBtn
+        <PreviewBtn
           label={`Buku Pembantu Panjar — ${bulanLabel}`}
-          onClick={makePDF("downloadPDF_BukuPanjar", {
-            rows: bukuPanjar, bulan,
-            filename: `BukuPanjar_${desaNama}${suffix}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_BukuPanjar",
+            `BukuPanjar_${desaNama}${suffix}.pdf`,
+            { rows: bukuPanjar, bulan })}
         />
       </LaporanCard>
 
       {/* ── Realisasi ── */}
       <LaporanCard icon={<Receipt className="h-4 w-4" />} title="Laporan Realisasi">
-        <DownloadBtn
+        <PreviewBtn
           label="Realisasi APBDes Semester I (Jan–Jun)"
-          onClick={makePDF("downloadPDF_RealisasiSemesterI", {
-            belanjaList, dicairkanSPP, realisasiPerKegiatan,
-            filename: `RealisasiSemesterI_${desaNama}_${tahun}.pdf`,
-          })}
+          onPreview={makePDFBlob("downloadPDF_RealisasiSemesterI",
+            `RealisasiSemesterI_${desaNama}_${tahun}.pdf`,
+            { belanjaList, dicairkanSPP, realisasiPerKegiatan })}
         />
       </LaporanCard>
 
       <p className="text-xs text-muted-foreground text-center pb-2">
-        Filter bulan hanya mempengaruhi laporan BKU &amp; Buku Pembantu.
+        Filter bulan hanya mempengaruhi BKU &amp; Buku Pembantu.
         APBDes, DPA, dan Realisasi Semester I selalu tampil data penuh.
       </p>
     </div>

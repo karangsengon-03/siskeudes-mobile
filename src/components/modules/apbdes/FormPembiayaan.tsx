@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useSavePembiayaan, useDeletePembiayaan } from "@/hooks/useAPBDes";
-import type { PembiayaanItem, SumberDana } from "@/lib/types";
+import type { PembiayaanItem, SumberDana, APBDesVariant } from "@/lib/types";
 import { formatRupiah } from "@/lib/utils";
 
 const REKENING_PEMBIAYAAN = [
@@ -54,17 +54,19 @@ interface FormValues {
 
 interface Props {
   items: PembiayaanItem[];
+  variant?: APBDesVariant;
+  readOnly?: boolean;
 }
 
-export function FormPembiayaan({ items }: Props) {
+export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Props) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<PembiayaanItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedPenerimaan, setExpandedPenerimaan] = useState(true);
   const [expandedPengeluaran, setExpandedPengeluaran] = useState(true);
 
-  const saveMutation = useSavePembiayaan();
-  const deleteMutation = useDeletePembiayaan();
+  const saveMutation = useSavePembiayaan(variant);
+  const deleteMutation = useDeletePembiayaan(variant);
 
   const { register, handleSubmit, control, setValue, watch, reset } =
     useForm<FormValues>();
@@ -160,14 +162,16 @@ export function FormPembiayaan({ items }: Props) {
                   )}
                   <span className="text-sm text-teal-600 font-medium">{formatRupiah(item.anggaran)}</span>
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(item)}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(item.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                {!readOnly && (
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(item)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(item.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -192,11 +196,13 @@ export function FormPembiayaan({ items }: Props) {
       {renderGroup("Penerimaan Pembiayaan", penerimaan, totalPenerimaan, expandedPenerimaan, setExpandedPenerimaan)}
       {renderGroup("Pengeluaran Pembiayaan", pengeluaran, totalPengeluaran, expandedPengeluaran, setExpandedPengeluaran)}
 
-      <div className="border-t px-4 py-3">
-        <Button size="sm" variant="outline" className="w-full gap-1" onClick={openAdd}>
-          <Plus className="w-4 h-4" /> Tambah Pembiayaan
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="border-t px-4 py-3">
+          <Button size="sm" variant="outline" className="w-full gap-1" onClick={openAdd}>
+            <Plus className="w-4 h-4" /> Tambah Pembiayaan
+          </Button>
+        </div>
+      )}
 
       {/* Dialog Form */}
       <Dialog open={open} onOpenChange={setOpen}>

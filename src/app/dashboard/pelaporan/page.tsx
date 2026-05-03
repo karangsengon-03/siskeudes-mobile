@@ -11,9 +11,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  FileDown, Loader2, FileText, BarChart3, BookOpen,
-  Wallet, Receipt, Eye, X, Download,
+  Loader2, FileText, BarChart3, BookOpen,
+  Wallet, Receipt, Eye, X, Download, PieChart, TrendingUp,
+  ClipboardList, Banknote, TrendingDown,
 } from "lucide-react";
+import type { SPPItem } from "@/lib/types";
+import type { BukuPajakItem } from "@/hooks/useBukuPembantu";
 
 const BULAN_OPTS = [
   { value: "0",  label: "Semua Bulan" },
@@ -195,15 +198,24 @@ export default function PelaporanPage() {
   const {
     isLoading, dataDesa,
     pendapatanList, belanjaList, pembiayaanList,
+    pakPendapatanList, pakBelanjaList, pakPembiayaanList,
+    hasPAK, apbdesMeta,
     dpaMap, bkuAll,
     bukuBank, bukuKasTunai, bukuPajak, bukuPajakRekap, bukuPanjar,
+    sppList, spjList, penerimaanList,
     dicairkanSPP, realisasiPerRekening, realisasiPerKegiatan,
+    realisasiPendapatan, realisasiPembiayaan,
+    saldoKasAkhir, saldoKasTunaiAkhir, saldoBankAkhir,
+    saldoKasTunaiAwal, saldoBankAwal, hutangPajakTotal, ekuitasAwal,
+    totalPenerimaanBKU, totalPengeluaranBKU,
   } = useDataLaporan(bulan);
 
   const suffix = bulan
     ? `_${bulanLabel.replace(/ /g, "-")}_${tahun}`
     : `_${tahun}`;
   const desaNama = (dataDesa?.namaDesa ?? "Desa").replace(/ /g, "-");
+  const nomorPerdesAwal = apbdesMeta?.nomorPerdesAwal;
+  const nomorPerdesPAK  = apbdesMeta?.nomorPerdesPAK;
 
   // Helper: generate blob URL (bukan auto-download)
   const makePDFBlob = useCallback(
@@ -258,18 +270,82 @@ export default function PelaporanPage() {
           label="APBDes Global (Pendapatan, Belanja, Pembiayaan)"
           onPreview={makePDFBlob("downloadPDF_APBDesGlobal",
             `APBDes-Global_${desaNama}_${tahun}.pdf`,
-            { pendapatanList, belanjaList, pembiayaanList })}
+            { pendapatanList, belanjaList, pembiayaanList, jenisAPBDes: "APBDes", nomorPerdes: nomorPerdesAwal })}
         />
         <PreviewBtn
           label="APBDes Per Kegiatan (Anggaran & Realisasi)"
           onPreview={makePDFBlob("downloadPDF_APBDesPerKegiatan",
             `APBDes-PerKegiatan_${desaNama}${suffix}.pdf`,
-            { belanjaList, realisasiPerRekening })}
+            { belanjaList, realisasiPerRekening, jenisAPBDes: "APBDes" })}
         />
         <PreviewBtn
           label="APBDes Rinci (RAB per Sub Item)"
           onPreview={makePDFBlob("downloadPDF_APBDesRinci",
             `APBDes-Rinci_${desaNama}_${tahun}.pdf`,
+            { belanjaList, jenisAPBDes: "APBDes" })}
+        />
+        <PreviewBtn
+          label="RAB Pendapatan"
+          onPreview={makePDFBlob("downloadPDF_RABPendapatan",
+            `RAB-Pendapatan_${desaNama}_${tahun}.pdf`,
+            { pendapatanList, jenisAPBDes: "APBDes", nomorPerdes: nomorPerdesAwal })}
+        />
+        <PreviewBtn
+          label="RAB Pembiayaan"
+          onPreview={makePDFBlob("downloadPDF_RABPembiayaan",
+            `RAB-Pembiayaan_${desaNama}_${tahun}.pdf`,
+            { pembiayaanList, jenisAPBDes: "APBDes", nomorPerdes: nomorPerdesAwal })}
+        />
+      </LaporanCard>
+
+      {/* ── PAK ── */}
+      {hasPAK && (
+        <LaporanCard icon={<TrendingUp className="h-4 w-4" />} title="PAK (Perubahan APBDes)">
+          <PreviewBtn
+            label="PAK Global (Pendapatan, Belanja, Pembiayaan)"
+            onPreview={makePDFBlob("downloadPDF_PAKGlobal",
+              `PAK-Global_${desaNama}_${tahun}.pdf`,
+              { pendapatanList: pakPendapatanList, belanjaList: pakBelanjaList, pembiayaanList: pakPembiayaanList, nomorPerdes: nomorPerdesPAK })}
+          />
+          <PreviewBtn
+            label="PAK Per Kegiatan"
+            onPreview={makePDFBlob("downloadPDF_PAKPerKegiatan",
+              `PAK-PerKegiatan_${desaNama}_${tahun}.pdf`,
+              { belanjaList: pakBelanjaList, realisasiPerRekening, nomorPerdes: nomorPerdesPAK })}
+          />
+          <PreviewBtn
+            label="PAK Rinci (RAB PAK per Sub Item)"
+            onPreview={makePDFBlob("downloadPDF_PAKRinci",
+              `PAK-Rinci_${desaNama}_${tahun}.pdf`,
+              { belanjaList: pakBelanjaList, nomorPerdes: nomorPerdesPAK })}
+          />
+          <PreviewBtn
+            label="RAB Pendapatan (PAK)"
+            onPreview={makePDFBlob("downloadPDF_RABPendapatan",
+              `PAK-RAB-Pendapatan_${desaNama}_${tahun}.pdf`,
+              { pendapatanList: pakPendapatanList, jenisAPBDes: "PAK", nomorPerdes: nomorPerdesPAK })}
+          />
+          <PreviewBtn
+            label="RAB Pembiayaan (PAK)"
+            onPreview={makePDFBlob("downloadPDF_RABPembiayaan",
+              `PAK-RAB-Pembiayaan_${desaNama}_${tahun}.pdf`,
+              { pembiayaanList: pakPembiayaanList, jenisAPBDes: "PAK", nomorPerdes: nomorPerdesPAK })}
+          />
+        </LaporanCard>
+      )}
+
+      {/* ── Analisis Penganggaran ── */}
+      <LaporanCard icon={<PieChart className="h-4 w-4" />} title="Analisis Penganggaran">
+        <PreviewBtn
+          label="Rekapitulasi per Sumber Dana (DD/ADD/PAD/BHPR/BKP/BKK)"
+          onPreview={makePDFBlob("downloadPDF_LaporanSumberDana",
+            `LaporanSumberDana_${desaNama}_${tahun}.pdf`,
+            { pendapatanList, belanjaList, pembiayaanList })}
+        />
+        <PreviewBtn
+          label="Proporsi Belanja Operasional vs Pembangunan"
+          onPreview={makePDFBlob("downloadPDF_ProporsiBelanjaOperasional",
+            `ProporsiBelanjaOperasional_${desaNama}_${tahun}.pdf`,
             { belanjaList })}
         />
       </LaporanCard>
@@ -328,19 +404,181 @@ export default function PelaporanPage() {
         />
       </LaporanCard>
 
-      {/* ── Realisasi ── */}
-      <LaporanCard icon={<Receipt className="h-4 w-4" />} title="Laporan Realisasi">
+      {/* ── Buku Pembantu Penatausahaan (Sesi 7) ── */}
+      <LaporanCard icon={<ClipboardList className="h-4 w-4" />} title="Buku Pembantu Penatausahaan">
+        {/* BPKegiatan: per kegiatan yang ada SPP-nya */}
+        {belanjaList
+          .filter((keg) => sppList.some((s: SPPItem) => s.kegiatanId === keg.id))
+          .slice(0, 5)
+          .map((keg) => (
+            <PreviewBtn
+              key={keg.id}
+              label={`BP Kegiatan — ${keg.namaKegiatan}`}
+              onPreview={makePDFBlob("downloadPDF_BPKegiatan",
+                `BPKegiatan_${keg.kodeKegiatan.replace(/\./g, "")}_${desaNama}${suffix}.pdf`,
+                { kegiatanId: keg.id, kegiatanNama: keg.namaKegiatan, sppList, spjList, bulan }) as PreviewBtnProps["onPreview"]}
+            />
+          ))}
+        {belanjaList.filter((keg) => sppList.some((s: SPPItem) => s.kegiatanId === keg.id)).length === 0 && (
+          <p className="text-xs text-muted-foreground py-1">Belum ada SPP yang dicairkan per kegiatan.</p>
+        )}
         <PreviewBtn
-          label="Realisasi APBDes Semester I (Jan–Jun)"
-          onPreview={makePDFBlob("downloadPDF_RealisasiSemesterI",
-            `RealisasiSemesterI_${desaNama}_${tahun}.pdf`,
-            { belanjaList, dicairkanSPP, realisasiPerKegiatan })}
+          label={`Buku Pembantu Pendapatan — ${bulanLabel}`}
+          onPreview={makePDFBlob("downloadPDF_BPPendapatan",
+            `BPPendapatan_${desaNama}${suffix}.pdf`,
+            { penerimaanList, bulan })}
+        />
+        {/* BPPajakPerJenis: per kode pajak yang ada datanya */}
+        {(() => {
+          type PajakGroup = { kodePajak: string; namaPajak: string };
+          const pajakGroups = bukuPajak.reduce<Record<string, PajakGroup>>((acc: Record<string, PajakGroup>, b: BukuPajakItem) => {
+            if (!acc[b.kodePajak]) acc[b.kodePajak] = { kodePajak: b.kodePajak, namaPajak: b.namaPajak };
+            return acc;
+          }, {});
+          return (Object.values(pajakGroups) as PajakGroup[]).map((pg: PajakGroup) => (
+            <PreviewBtn
+              key={pg.kodePajak}
+              label={`BP Pajak per Jenis — ${pg.namaPajak}`}
+              onPreview={makePDFBlob("downloadPDF_BPPajakPerJenis",
+                `BPPajakPerJenis_${pg.kodePajak}_${desaNama}${suffix}.pdf`,
+                { bukuPajakList: bukuPajak, kodePajak: pg.kodePajak, namaPajak: pg.namaPajak, bulan }) as PreviewBtnProps["onPreview"]}
+            />
+          ));
+        })()}
+        {bukuPajak.length === 0 && (
+          <p className="text-xs text-muted-foreground py-1">Belum ada data pajak tercatat.</p>
+        )}
+      </LaporanCard>
+
+      {/* ── Register Dokumen (Sesi 7) ── */}
+      <LaporanCard icon={<Banknote className="h-4 w-4" />} title="Register Dokumen Penatausahaan">
+        <PreviewBtn
+          label={`Register SPP — ${bulanLabel}`}
+          onPreview={makePDFBlob("downloadPDF_RegisterSPP",
+            `RegisterSPP_${desaNama}${suffix}.pdf`,
+            { sppList, bulan })}
+        />
+        <PreviewBtn
+          label={`Register Kuitansi (KWT) — ${bulanLabel}`}
+          onPreview={makePDFBlob("downloadPDF_RegisterKWT",
+            `RegisterKWT_${desaNama}${suffix}.pdf`,
+            { sppList, spjList, bulan })}
+        />
+        <PreviewBtn
+          label={`Register Pencairan (CAIR) — ${bulanLabel}`}
+          onPreview={makePDFBlob("downloadPDF_RegisterPencairan",
+            `RegisterPencairan_${desaNama}${suffix}.pdf`,
+            { sppList, bulan })}
+        />
+        <PreviewBtn
+          label={`Register SPJ — ${bulanLabel}`}
+          onPreview={makePDFBlob("downloadPDF_RegisterSPJ",
+            `RegisterSPJ_${desaNama}${suffix}.pdf`,
+            { spjList, sppList, bulan })}
+        />
+      </LaporanCard>
+
+      {/* ── LRA — Laporan Realisasi Anggaran ── */}
+      <LaporanCard icon={<Receipt className="h-4 w-4" />} title="LRA — Laporan Realisasi Anggaran">
+        {/* LRA 1A */}
+        <PreviewBtn
+          label="LRA 1A — Ringkasan Global (Pendapatan, Belanja, Pembiayaan)"
+          onPreview={makePDFBlob("downloadPDF_LRA1A",
+            `LRA-1A_${desaNama}_${tahun}.pdf`,
+            { pendapatanList, belanjaList, pembiayaanList,
+              realisasiPendapatan, realisasiPerRekening, realisasiPembiayaan,
+              nomorPerdes: nomorPerdesAwal, jenisAPBDes: "APBDes" })}
+        />
+        {/* LRA 1B */}
+        <PreviewBtn
+          label="LRA 1B — Per Kegiatan & Rekening"
+          onPreview={makePDFBlob("downloadPDF_LRA1B",
+            `LRA-1B_${desaNama}_${tahun}.pdf`,
+            { belanjaList, realisasiPerRekening, jenisAPBDes: "APBDes" })}
+        />
+        {/* LRA 1C */}
+        <PreviewBtn
+          label="LRA 1C — Rinci Per Sub Item"
+          onPreview={makePDFBlob("downloadPDF_LRA1C",
+            `LRA-1C_${desaNama}_${tahun}.pdf`,
+            { belanjaList, realisasiPerRekening, jenisAPBDes: "APBDes" })}
+        />
+        {/* Semester I */}
+        <PreviewBtn
+          label="LRA Semester I (Januari — Juni)"
+          onPreview={makePDFBlob("downloadPDF_LRASemester",
+            `LRA-Sem1_${desaNama}_${tahun}.pdf`,
+            { semester: 1, belanjaList, realisasiPerRekening, dicairkanSPP })}
+        />
+        {/* Semester II */}
+        <PreviewBtn
+          label="LRA Semester II (Juli — Desember)"
+          onPreview={makePDFBlob("downloadPDF_LRASemester",
+            `LRA-Sem2_${desaNama}_${tahun}.pdf`,
+            { semester: 2, belanjaList, realisasiPerRekening, dicairkanSPP })}
+        />
+      </LaporanCard>
+
+      {/* ── LRA PAK (conditional) ── */}
+      {hasPAK && (
+        <LaporanCard icon={<TrendingDown className="h-4 w-4" />} title="LRA — PAK (Perubahan APBDes)">
+          <PreviewBtn
+            label="LRA PAK 1A — Ringkasan Global"
+            onPreview={makePDFBlob("downloadPDF_LRA1A",
+              `LRA-PAK-1A_${desaNama}_${tahun}.pdf`,
+              { pendapatanList: pakPendapatanList, belanjaList: pakBelanjaList,
+                pembiayaanList: pakPembiayaanList,
+                realisasiPendapatan, realisasiPerRekening, realisasiPembiayaan,
+                nomorPerdes: nomorPerdesPAK, jenisAPBDes: "PAK" })}
+          />
+          <PreviewBtn
+            label="LRA PAK 1B — Per Kegiatan"
+            onPreview={makePDFBlob("downloadPDF_LRA1B",
+              `LRA-PAK-1B_${desaNama}_${tahun}.pdf`,
+              { belanjaList: pakBelanjaList, realisasiPerRekening, jenisAPBDes: "PAK" })}
+          />
+          <PreviewBtn
+            label="LRA PAK 1C — Rinci Per Sub Item"
+            onPreview={makePDFBlob("downloadPDF_LRA1C",
+              `LRA-PAK-1C_${desaNama}_${tahun}.pdf`,
+              { belanjaList: pakBelanjaList, realisasiPerRekening, jenisAPBDes: "PAK" })}
+          />
+        </LaporanCard>
+      )}
+
+      {/* ── LRA Per Sumber Dana ── */}
+      <LaporanCard icon={<TrendingUp className="h-4 w-4" />} title="LRA Per Sumber Dana">
+        {(["DD", "ADD", "PAD", "BHPR", "BKP", "BKK"] as const).map((sd) => (
+          <PreviewBtn
+            key={sd}
+            label={`LRA Sumber Dana — ${sd}`}
+            onPreview={makePDFBlob("downloadPDF_LRAPerSumberDana",
+              `LRA-SumberDana-${sd}_${desaNama}_${tahun}.pdf`,
+              { sumberDana: sd, belanjaList, realisasiPerRekening }) as PreviewBtnProps["onPreview"]}
+          />
+        ))}
+      </LaporanCard>
+
+      {/* ── Laporan Kekayaan Milik Desa ── */}
+      <LaporanCard icon={<Banknote className="h-4 w-4" />} title="Laporan Kekayaan Milik Desa">
+        <PreviewBtn
+          label="Laporan Kekayaan Milik Desa (Neraca Sederhana)"
+          onPreview={makePDFBlob("downloadPDF_LRAKekayaan",
+            `LRA-Kekayaan_${desaNama}_${tahun}.pdf`,
+            {
+              totalPenerimaan: totalPenerimaanBKU,
+              totalPengeluaran: totalPengeluaranBKU,
+              saldoKasAkhir,
+              saldoKasTunaiAwal, saldoBankAwal,
+              saldoKasTunaiAkhir, saldoBankAkhir,
+              hutangPajakTotal, ekuitasAwal,
+            })}
         />
       </LaporanCard>
 
       <p className="text-xs text-muted-foreground text-center pb-2">
         Filter bulan hanya mempengaruhi BKU &amp; Buku Pembantu.
-        APBDes, DPA, dan Realisasi Semester I selalu tampil data penuh.
+        APBDes, DPA, LRA, dan data Realisasi selalu tampil data penuh.
       </p>
     </div>
   );

@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useSavePendapatan, useDeletePendapatan } from "@/hooks/useAPBDes";
-import type { PendapatanItem, SumberDana } from "@/lib/types";
+import type { PendapatanItem, SumberDana, APBDesVariant } from "@/lib/types";
 import { formatRupiah } from "@/lib/utils";
 
 // Daftar kode rekening pendapatan (level 3)
@@ -61,16 +61,18 @@ interface FormValues {
 
 interface Props {
   items: PendapatanItem[];
+  variant?: APBDesVariant;
+  readOnly?: boolean;
 }
 
-export function FormPendapatan({ items }: Props) {
+export function FormPendapatan({ items, variant = "awal", readOnly = false }: Props) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<PendapatanItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
 
-  const saveMutation = useSavePendapatan();
-  const deleteMutation = useDeletePendapatan();
+  const saveMutation = useSavePendapatan(variant);
+  const deleteMutation = useDeletePendapatan(variant);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
     useForm<FormValues>();
@@ -165,22 +167,26 @@ export function FormPendapatan({ items }: Props) {
                   </span>
                 </div>
               </div>
-              <div className="flex gap-1 shrink-0">
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(item)}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(item.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+              {!readOnly && (
+                <div className="flex gap-1 shrink-0">
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(item)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(item.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
 
-          <div className="px-4 py-3">
-            <Button size="sm" variant="outline" className="w-full gap-1" onClick={openAdd}>
-              <Plus className="w-4 h-4" /> Tambah Pendapatan
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="px-4 py-3">
+              <Button size="sm" variant="outline" className="w-full gap-1" onClick={openAdd}>
+                <Plus className="w-4 h-4" /> Tambah Pendapatan
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

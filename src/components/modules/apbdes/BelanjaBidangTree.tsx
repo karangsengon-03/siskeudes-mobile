@@ -25,12 +25,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FormKegiatan } from "./FormKegiatan";
 import { useDeleteKegiatan } from "@/hooks/useAPBDes";
-import type { KegiatanAPBDes, SumberDana } from "@/lib/types";
+import type { KegiatanAPBDes, SumberDana, APBDesVariant } from "@/lib/types";
 import { formatRupiah } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 interface Props {
   kegiatanList: KegiatanAPBDes[] | { [id: string]: KegiatanAPBDes };
+  variant?: APBDesVariant;
+  readOnly?: boolean;
 }
 
 interface BidangGroup {
@@ -78,7 +80,7 @@ function groupByBidang(list: KegiatanAPBDes[]): BidangGroup[] {
   return Array.from(map.values()).sort((a, b) => a.kode.localeCompare(b.kode));
 }
 
-export function BelanjaBidangTree({ kegiatanList: kegiatanRaw }: Props) {
+export function BelanjaBidangTree({ kegiatanList: kegiatanRaw, variant = "awal", readOnly = false }: Props) {
   const kegiatanAll: KegiatanAPBDes[] = Array.isArray(kegiatanRaw)
     ? kegiatanRaw
     : Object.values(kegiatanRaw ?? {});
@@ -92,7 +94,7 @@ export function BelanjaBidangTree({ kegiatanList: kegiatanRaw }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<KegiatanAPBDes | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const deleteKegiatan = useDeleteKegiatan();
+  const deleteKegiatan = useDeleteKegiatan(variant);
 
   // C — Filter kegiatan berdasarkan sumber dana (cek di rekeningList)
   const kegiatanList = useMemo(() => {
@@ -397,7 +399,7 @@ export function BelanjaBidangTree({ kegiatanList: kegiatanRaw }: Props) {
       </div>
 
       {/* Form Sheet */}
-      <FormKegiatan
+      <FormKegiatan variant={variant} readOnly={readOnly}
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditData(null); }}
         editData={editData}

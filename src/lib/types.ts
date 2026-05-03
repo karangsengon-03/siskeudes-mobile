@@ -111,6 +111,22 @@ export interface APBDesData {
   updatedAt: number;
 }
 
+// ===== APBDes META (AWAL vs PAK) =====
+
+export interface APBDesMeta {
+  statusAwal: "draft" | "disahkan";
+  tanggalSahAwal?: string;     // "YYYY-MM-DD"
+  nomorPerdesAwal?: string;    // Nomor Peraturan Desa APBDes Awal
+  statusPAK: "belum_ada" | "draft" | "disahkan";
+  tanggalSahPAK?: string;      // "YYYY-MM-DD"
+  nomorPerdesPAK?: string;     // Nomor Perdes PAK
+  updatedAt: number;
+}
+
+// Variant APBDes yang sedang aktif (digunakan Penatausahaan)
+// PAK jika statusPAK bukan 'belum_ada', AWAL jika belum ada PAK
+export type APBDesVariant = "awal" | "pak";
+
 // ===== DPA =====
 
 export interface DPABulan {
@@ -129,6 +145,29 @@ export interface DPAKegiatan {
 
 export interface DPAData {
   [kegiatanId: string]: Omit<DPAKegiatan, "kegiatanId">;
+}
+
+// ===== PERENCANAAN =====
+
+export interface ItemPerencanaan {
+  id: string;
+  bidang: string;       // e.g. "1"
+  bidangNama: string;
+  subBidang: string;    // e.g. "1.1"
+  subBidangNama: string;
+  kegiatan: string;     // e.g. "1.1.01"
+  kegiatanNama: string;
+  waktuPelaksanaan: number; // tahun (e.g. 2026) atau bulan (1-12), opsional sebagai info
+  outputKeluaran: string;
+  nilaiPagu: number;
+  status: "draft" | "terkunci";
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PerencanaanMeta {
+  statusGlobal: "draft" | "terkunci"; // jika terkunci, APBDes hanya bisa pilih kegiatan dari sini
+  updatedAt: number;
 }
 
 // ===== SPP =====

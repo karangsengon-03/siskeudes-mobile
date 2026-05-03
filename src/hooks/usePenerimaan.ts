@@ -12,7 +12,7 @@ async function generateNomorPenerimaan(
   tahun: string,
   jenis: JenisPenerimaan
 ): Promise<string> {
-  const r = ref(database, `siskeudesOnline/penerimaan/${tahun}`);
+  const r = ref(database, `siskeudesOnline/tahun/${tahun}/penerimaan`);
   const snap = await get(r);
   const semua = snap.exists()
     ? Object.values(snap.val() as Record<string, PenerimaanItem>).filter(
@@ -31,7 +31,7 @@ export function usePenerimaan() {
     queryKey: ["penerimaan", tahun],
     queryFn: () =>
       new Promise((resolve) => {
-        const r = ref(database, `siskeudesOnline/penerimaan/${tahun}`);
+        const r = ref(database, `siskeudesOnline/tahun/${tahun}/penerimaan`);
         onValue(
           r,
           (snap) => {
@@ -62,7 +62,7 @@ export function useAddPenerimaan() {
         payload.jenisPenerimaan
       );
       // Simpan ke penerimaan
-      const penRef = ref(database, `siskeudesOnline/penerimaan/${tahun}`);
+      const penRef = ref(database, `siskeudesOnline/tahun/${tahun}/penerimaan`);
       const newRef = await push(penRef, {
         ...payload,
         nomorBukti,
@@ -71,7 +71,7 @@ export function useAddPenerimaan() {
       });
 
       // Otomatis masuk BKU sebagai penerimaan
-      await push(ref(database, `siskeudesOnline/bku/${tahun}`), {
+      await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
         tanggal: payload.tanggal,
         uraian: payload.uraian,
         penerimaan: payload.jumlah,
@@ -97,19 +97,30 @@ export function useDeletePenerimaan() {
   const qc = useQueryClient();
 
   return useMutation({
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ["penerimaan", tahun] });
+      const prev = qc.getQueryData<PenerimaanItem[]>(["penerimaan", tahun]);
+      if (prev) {
+        qc.setQueryData<PenerimaanItem[]>(["penerimaan", tahun], prev.filter((p) => p.id !== id));
+      }
+      return { prev };
+    },
     mutationFn: async (id: string) => {
       // Hapus entri BKU yang mereferensikan penerimaan ini
-      const bkuRef = ref(database, `siskeudesOnline/bku/${tahun}`);
+      const bkuRef = ref(database, `siskeudesOnline/tahun/${tahun}/bku`);
       const snap = await get(bkuRef);
       if (snap.exists()) {
         const raw = snap.val() as Record<string, { penerimaanId?: string }>;
         for (const [bkuId, bkuItem] of Object.entries(raw)) {
           if (bkuItem.penerimaanId === id) {
-            await remove(ref(database, `siskeudesOnline/bku/${tahun}/${bkuId}`));
+            await remove(ref(database, `siskeudesOnline/tahun/${tahun}/bku/${bkuId}`));
           }
         }
       }
-      await remove(ref(database, `siskeudesOnline/penerimaan/${tahun}/${id}`));
+      await remove(ref(database, `siskeudesOnline/tahun/${tahun}/penerimaan/${id}`));
+    },
+    onError: (_e, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["penerimaan", tahun], ctx.prev);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["penerimaan", tahun] });

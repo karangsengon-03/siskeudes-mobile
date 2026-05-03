@@ -34,6 +34,7 @@ export const BIDANG_KEGIATAN: Bidang[] = [
           { kode: "1.1.05", uraian: "Penyediaan Tunjangan BPD" },
           { kode: "1.1.06", uraian: "Penyediaan Operasional BPD" },
           { kode: "1.1.07", uraian: "Penyediaan Insentif/Operasional RT/RW" },
+          { kode: "1.1.08", uraian: "Penyediaan Operasional Pemerintah Desa (dari Dana Desa)" },
           { kode: "1.1.90", uraian: "Lain-lain Sub-Bidang ini" },
         ],
       },

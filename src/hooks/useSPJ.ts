@@ -9,7 +9,7 @@ import { useAppStore } from "@/store/appStore";
 import { useAuthStore } from "@/store/authStore";
 
 async function generateNomorSPJ(tahun: string): Promise<string> {
-  const r = ref(database, `siskeudesOnline/spj/${tahun}`);
+  const r = ref(database, `siskeudesOnline/tahun/${tahun}/spj`);
   const snap = await get(r);
   const count = snap.exists() ? Object.keys(snap.val()).length : 0;
   return `SPJ/${String(count + 1).padStart(3, "0")}/${tahun}`;
@@ -25,7 +25,7 @@ export function useSPJ() {
     queryKey: ["spj", tahun],
     queryFn: () =>
       new Promise((resolve) => {
-        const r = ref(database, `siskeudesOnline/spj/${tahun}`);
+        const r = ref(database, `siskeudesOnline/tahun/${tahun}/spj`);
         onValue(r, (snap) => {
           if (!snap.exists()) return resolve([]);
           const raw = snap.val() as Record<string, Omit<SPJItem, "id">>;
@@ -47,7 +47,7 @@ async function writeSPJToBKUAndPajak(
   nomorSPJ: string
 ) {
   // Baris penanda SPJ di BKU (nilai 0)
-  await push(ref(database, `siskeudesOnline/bku/${tahun}`), {
+  await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
     tanggal: payload.tanggal,
     uraian: `SPJ - ${payload.kegiatanNama}`,
     penerimaan: 0,
@@ -61,7 +61,7 @@ async function writeSPJToBKUAndPajak(
 
   // Sisa panjar → penerimaan balik ke BKU
   if (payload.sisaPanjar > 0) {
-    await push(ref(database, `siskeudesOnline/bku/${tahun}`), {
+    await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
       tanggal: payload.tanggal,
       uraian: `Sisa Panjar — ${payload.nomorSPP}`,
       penerimaan: payload.sisaPanjar,
@@ -78,7 +78,7 @@ async function writeSPJToBKUAndPajak(
   // Kembalikan totalPajak ke saldo BKU sebagai titipan pajak
   // sehingga saldo tidak minus saat nanti Setor Pajak.
   if (payload.totalPajak > 0) {
-    await push(ref(database, `siskeudesOnline/bku/${tahun}`), {
+    await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
       tanggal: payload.tanggal,
       uraian: `Titipan Pajak — ${nomorSPJ}`,
       penerimaan: payload.totalPajak,
@@ -97,7 +97,7 @@ async function writeSPJToBKUAndPajak(
   for (let i = 0; i < pajakArr.length; i++) {
     const pajak = pajakArr[i];
     if (pajak.jumlahPajak > 0) {
-      await push(ref(database, `siskeudesOnline/bukuPembantuPajak/${tahun}`), {
+      await push(ref(database, `siskeudesOnline/tahun/${tahun}/bukuPembantuPajak`), {
         tanggal: payload.tanggal,
         nomorSPJ,
         nomorSPP: payload.nomorSPP,
@@ -121,14 +121,14 @@ export function useAddSPJ() {
   return useMutation({
     mutationFn: async (payload: AddSPJPayload) => {
       const nomorSPJ = await generateNomorSPJ(tahun);
-      await push(ref(database, `siskeudesOnline/spj/${tahun}`), {
+      await push(ref(database, `siskeudesOnline/tahun/${tahun}/spj`), {
         ...payload,
         nomorSPJ,
         status: "disahkan",
         inputOleh: uid,
         createdAt: Date.now(),
       });
-      await update(ref(database, `siskeudesOnline/spp/${tahun}/${payload.sppId}`), {
+      await update(ref(database, `siskeudesOnline/tahun/${tahun}/spp/${payload.sppId}`), {
         sudahSPJ: true,
         nomorSPJ,
       });
@@ -145,40 +145,40 @@ export function useAddSPJ() {
 }
 
 async function deleteSPJData(tahun: string, spjId: string) {
-  const spjSnap = await get(ref(database, `siskeudesOnline/spj/${tahun}/${spjId}`));
+  const spjSnap = await get(ref(database, `siskeudesOnline/tahun/${tahun}/spj/${spjId}`));
   if (!spjSnap.exists()) return null;
   const spjData = spjSnap.val() as Omit<SPJItem, "id">;
 
   // Hapus entri BKU yang mereferensikan SPJ ini
-  const bkuSnap = await get(ref(database, `siskeudesOnline/bku/${tahun}`));
+  const bkuSnap = await get(ref(database, `siskeudesOnline/tahun/${tahun}/bku`));
   if (bkuSnap.exists()) {
     const raw = bkuSnap.val() as Record<string, { nomorRef?: string }>;
     for (const [bkuId, bkuItem] of Object.entries(raw)) {
       if (bkuItem.nomorRef === spjData.nomorSPJ) {
-        await remove(ref(database, `siskeudesOnline/bku/${tahun}/${bkuId}`));
+        await remove(ref(database, `siskeudesOnline/tahun/${tahun}/bku/${bkuId}`));
       }
     }
   }
 
   // Hapus entri BukuPembantuPajak yang merujuk SPJ ini
-  const pajakSnap = await get(ref(database, `siskeudesOnline/bukuPembantuPajak/${tahun}`));
+  const pajakSnap = await get(ref(database, `siskeudesOnline/tahun/${tahun}/bukuPembantuPajak`));
   if (pajakSnap.exists()) {
     const raw = pajakSnap.val() as Record<string, { nomorSPJ?: string }>;
     for (const [pid, pItem] of Object.entries(raw)) {
       if (pItem.nomorSPJ === spjData.nomorSPJ) {
-        await remove(ref(database, `siskeudesOnline/bukuPembantuPajak/${tahun}/${pid}`));
+        await remove(ref(database, `siskeudesOnline/tahun/${tahun}/bukuPembantuPajak/${pid}`));
       }
     }
   }
 
   // Kembalikan status SPP
-  await update(ref(database, `siskeudesOnline/spp/${tahun}/${spjData.sppId}`), {
+  await update(ref(database, `siskeudesOnline/tahun/${tahun}/spp/${spjData.sppId}`), {
     sudahSPJ: false,
     nomorSPJ: null,
   });
 
   // Hapus SPJ
-  await remove(ref(database, `siskeudesOnline/spj/${tahun}/${spjId}`));
+  await remove(ref(database, `siskeudesOnline/tahun/${tahun}/spj/${spjId}`));
 
   return spjData;
 }
@@ -187,7 +187,18 @@ export function useDeleteSPJ() {
   const tahun = useAppStore((s) => s.tahunAnggaran);
   const qc = useQueryClient();
   return useMutation({
+    onMutate: async (spjId: string) => {
+      await qc.cancelQueries({ queryKey: ["spj", tahun] });
+      const prev = qc.getQueryData<SPJItem[]>(["spj", tahun]);
+      if (prev) {
+        qc.setQueryData<SPJItem[]>(["spj", tahun], prev.filter((s) => s.id !== spjId));
+      }
+      return { prev };
+    },
     mutationFn: (spjId: string) => deleteSPJData(tahun, spjId),
+    onError: (_e, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["spj", tahun], ctx.prev);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["spj", tahun] });
       qc.invalidateQueries({ queryKey: ["spp", tahun] });
@@ -209,7 +220,7 @@ export function useEditSPJ() {
       const { spjId, ...rest } = payload;
 
       // Ambil nomorSPJ lama agar nomor tidak berubah
-      const spjSnap = await get(ref(database, `siskeudesOnline/spj/${tahun}/${spjId}`));
+      const spjSnap = await get(ref(database, `siskeudesOnline/tahun/${tahun}/spj/${spjId}`));
       if (!spjSnap.exists()) throw new Error("SPJ tidak ditemukan");
       const nomorSPJ: string = spjSnap.val().nomorSPJ;
 
@@ -217,7 +228,7 @@ export function useEditSPJ() {
       await deleteSPJData(tahun, spjId);
 
       // Tulis ulang SPJ dengan data baru, nomor tetap sama
-      await push(ref(database, `siskeudesOnline/spj/${tahun}`), {
+      await push(ref(database, `siskeudesOnline/tahun/${tahun}/spj`), {
         ...rest,
         nomorSPJ,
         status: "disahkan",
@@ -226,7 +237,7 @@ export function useEditSPJ() {
       });
 
       // Tandai SPP sudah di-SPJ lagi
-      await update(ref(database, `siskeudesOnline/spp/${tahun}/${rest.sppId}`), {
+      await update(ref(database, `siskeudesOnline/tahun/${tahun}/spp/${rest.sppId}`), {
         sudahSPJ: true,
         nomorSPJ,
       });

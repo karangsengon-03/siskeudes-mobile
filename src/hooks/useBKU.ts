@@ -14,7 +14,7 @@ export function useBKU(bulanFilter?: number) {
     queryKey: ["bku", tahun, bulanFilter ?? "all"],
     queryFn: () =>
       new Promise((resolve) => {
-        const r = ref(database, `siskeudesOnline/bku/${tahun}`);
+        const r = ref(database, `siskeudesOnline/tahun/${tahun}/bku`);
         onValue(r, (snap) => {
           if (!snap.exists()) return resolve([]);
           const raw = snap.val() as Record<string, Omit<BKUItem, "id">>;

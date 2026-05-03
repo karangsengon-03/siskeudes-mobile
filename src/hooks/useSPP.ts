@@ -13,7 +13,7 @@ function rtdbToList<T extends { id: string }>(raw: Record<string, Omit<T, "id">>
 }
 
 async function generateNomorSPP(tahun: string): Promise<string> {
-  const r = ref(database, `siskeudesOnline/spp/${tahun}`);
+  const r = ref(database, `siskeudesOnline/tahun/${tahun}/spp`);
   const snap = await get(r);
   const count = snap.exists() ? Object.keys(snap.val()).length : 0;
   const urutan = String(count + 1).padStart(3, "0");
@@ -22,7 +22,7 @@ async function generateNomorSPP(tahun: string): Promise<string> {
 
 // Cari semua baris BKU yang terkait dengan sppId tertentu
 async function findBKUBySppId(tahun: string, sppId: string): Promise<string[]> {
-  const snap = await get(ref(database, `siskeudesOnline/bku/${tahun}`));
+  const snap = await get(ref(database, `siskeudesOnline/tahun/${tahun}/bku`));
   if (!snap.exists()) return [];
   const raw = snap.val() as Record<string, any>;
   return Object.entries(raw)
@@ -36,7 +36,7 @@ export function useSPP() {
     queryKey: ["spp", tahun],
     queryFn: () =>
       new Promise((resolve) => {
-        const r = ref(database, `siskeudesOnline/spp/${tahun}`);
+        const r = ref(database, `siskeudesOnline/tahun/${tahun}/spp`);
         onValue(r, (snap) => {
           if (!snap.exists()) return resolve([]);
           const raw = snap.val() as Record<string, Omit<SPPItem, "id">>;
@@ -58,7 +58,7 @@ export function useAddSPP() {
   return useMutation({
     mutationFn: async (payload: AddSPPPayload) => {
       const nomorSPP = await generateNomorSPP(tahun);
-      await push(ref(database, `siskeudesOnline/spp/${tahun}`), {
+      await push(ref(database, `siskeudesOnline/tahun/${tahun}/spp`), {
         ...payload,
         nomorSPP,
         status: "dikonfirmasi",
@@ -78,7 +78,7 @@ export function useEditSPP() {
   return useMutation({
     mutationFn: async (payload: EditSPPPayload) => {
       const { id, ...rest } = payload;
-      await update(ref(database, `siskeudesOnline/spp/${tahun}/${id}`), {
+      await update(ref(database, `siskeudesOnline/tahun/${tahun}/spp/${id}`), {
         ...rest,
         updatedAt: Date.now(),
       });
@@ -96,11 +96,11 @@ export function useCairkanSPP() {
       const today = new Date().toISOString().split("T")[0];
       // Simpan mediaPembayaran ke BKU agar saldo bank/tunai bisa dipisah
       const mediaPembayaran = spp.mediaPembayaran ?? "bank";
-      await update(ref(database, `siskeudesOnline/spp/${tahun}/${spp.id}`), {
+      await update(ref(database, `siskeudesOnline/tahun/${tahun}/spp/${spp.id}`), {
         status: "dicairkan",
         dicairkanTanggal: today,
       });
-      await push(ref(database, `siskeudesOnline/bku/${tahun}`), {
+      await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
         tanggal: spp.tanggal,
         uraian: spp.uraian,
         penerimaan: 0,
@@ -131,11 +131,11 @@ export function useUncairkanSPP() {
       const bkuIds = await findBKUBySppId(tahun, sppId);
       await Promise.all(
         bkuIds.map((bkuId) =>
-          remove(ref(database, `siskeudesOnline/bku/${tahun}/${bkuId}`))
+          remove(ref(database, `siskeudesOnline/tahun/${tahun}/bku/${bkuId}`))
         )
       );
       // Kembalikan status SPP ke dikonfirmasi
-      await update(ref(database, `siskeudesOnline/spp/${tahun}/${sppId}`), {
+      await update(ref(database, `siskeudesOnline/tahun/${tahun}/spp/${sppId}`), {
         status: "dikonfirmasi",
         dicairkanTanggal: null,
         updatedAt: Date.now(),
@@ -152,16 +152,27 @@ export function useDeleteSPP() {
   const tahun = useAppStore((s) => s.tahunAnggaran);
   const qc = useQueryClient();
   return useMutation({
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ["spp", tahun] });
+      const prev = qc.getQueryData<SPPItem[]>(["spp", tahun]);
+      if (prev) {
+        qc.setQueryData<SPPItem[]>(["spp", tahun], prev.filter((s) => s.id !== id));
+      }
+      return { prev };
+    },
     mutationFn: async (id: string) => {
       // Hapus baris BKU terkait terlebih dahulu (jika SPP sudah dicairkan)
       const bkuIds = await findBKUBySppId(tahun, id);
       await Promise.all(
         bkuIds.map((bkuId) =>
-          remove(ref(database, `siskeudesOnline/bku/${tahun}/${bkuId}`))
+          remove(ref(database, `siskeudesOnline/tahun/${tahun}/bku/${bkuId}`))
         )
       );
       // Hapus SPP
-      await remove(ref(database, `siskeudesOnline/spp/${tahun}/${id}`));
+      await remove(ref(database, `siskeudesOnline/tahun/${tahun}/spp/${id}`));
+    },
+    onError: (_e, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["spp", tahun], ctx.prev);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["spp", tahun] });

@@ -17,6 +17,8 @@ import {
   Settings,
   LogOut,
   Landmark,
+  BookKey,
+  Map,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -31,8 +33,10 @@ import {
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Master Data", href: "/dashboard/master", icon: Database },
+  { label: "Perencanaan", href: "/dashboard/perencanaan", icon: Map },
   { label: "APBDes", href: "/dashboard/apbdes", icon: BookOpen },
   { label: "DPA", href: "/dashboard/dpa", icon: ClipboardList },
+  { label: "Pembukuan", href: "/dashboard/pembukuan", icon: BookKey },
   { label: "Penatausahaan", href: "/dashboard/penatausahaan", icon: Wallet },
   { label: "Buku Pembantu", href: "/dashboard/buku-pembantu", icon: BookMarked },
   { label: "Pelaporan", href: "/dashboard/pelaporan", icon: FileText },

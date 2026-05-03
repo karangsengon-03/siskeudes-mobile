@@ -9,7 +9,7 @@ import { useAppStore } from "@/store/appStore";
 import { useAuthStore } from "@/store/authStore";
 
 async function generateNomorSetor(tahun: string): Promise<string> {
-  const r = ref(database, `siskeudesOnline/penyetoranPajak/${tahun}`);
+  const r = ref(database, `siskeudesOnline/tahun/${tahun}/penyetoranPajak`);
   const snap = await get(r);
   const count = snap.exists() ? Object.keys(snap.val()).length : 0;
   return `PJKK/${String(count + 1).padStart(3, "0")}/${tahun}`;
@@ -26,7 +26,7 @@ export function usePenyetoranPajak() {
     queryKey: ["penyetoranPajak", tahun],
     queryFn: () =>
       new Promise((resolve) => {
-        const r = ref(database, `siskeudesOnline/penyetoranPajak/${tahun}`);
+        const r = ref(database, `siskeudesOnline/tahun/${tahun}/penyetoranPajak`);
         onValue(r, (snap) => {
           if (!snap.exists()) return resolve([]);
           const raw = snap.val() as Record<string, Omit<PenyetoranPajakItem, "id">>;
@@ -51,7 +51,7 @@ export function useAddPenyetoranPajak() {
       const nomorSetor = await generateNomorSetor(tahun);
 
       // Simpan ke penyetoranPajak
-      const setorRef = ref(database, `siskeudesOnline/penyetoranPajak/${tahun}`);
+      const setorRef = ref(database, `siskeudesOnline/tahun/${tahun}/penyetoranPajak`);
       const newRef = await push(setorRef, {
         ...payload,
         nomorSetor,
@@ -63,8 +63,8 @@ export function useAddPenyetoranPajak() {
       const multiPathUpdate: Record<string, unknown> = {};
       for (const bppId of payload.bukuPembantuPajakIds) {
         if (!bppId) continue;
-        multiPathUpdate[`siskeudesOnline/bukuPembantuPajak/${tahun}/${bppId}/sudahDisetor`] = true;
-        multiPathUpdate[`siskeudesOnline/bukuPembantuPajak/${tahun}/${bppId}/nomorSetor`] = nomorSetor;
+        multiPathUpdate[`siskeudesOnline/tahun/${tahun}/bukuPembantuPajak/${bppId}/sudahDisetor`] = true;
+        multiPathUpdate[`siskeudesOnline/tahun/${tahun}/bukuPembantuPajak/${bppId}/nomorSetor`] = nomorSetor;
       }
       if (Object.keys(multiPathUpdate).length > 0) {
         await update(ref(database, "/"), multiPathUpdate);
@@ -82,7 +82,7 @@ export function useAddPenyetoranPajak() {
       if (perKode && perKode.length > 0) {
         for (let i = 0; i < perKode.length; i++) {
           const item = perKode[i];
-          await push(ref(database, `siskeudesOnline/bku/${tahun}`), {
+          await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
             tanggal: payload.tanggal,
             uraian: `Setor ${item.namaPajak} — ${nomorSetor}`,
             penerimaan: 0,
@@ -96,7 +96,7 @@ export function useAddPenyetoranPajak() {
           });
         }
       } else {
-        await push(ref(database, `siskeudesOnline/bku/${tahun}`), {
+        await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
           tanggal: payload.tanggal,
           uraian: `Setor Pajak ${payload.namaPajak} — ${nomorSetor}`,
           penerimaan: 0,
@@ -123,26 +123,37 @@ export function useDeletePenyetoranPajak() {
   const qc = useQueryClient();
 
   return useMutation({
+    onMutate: async ({ id }: { id: string; bukuPembantuPajakIds: string[] }) => {
+      await qc.cancelQueries({ queryKey: ["penyetoranPajak", tahun] });
+      const prev = qc.getQueryData<PenyetoranPajakItem[]>(["penyetoranPajak", tahun]);
+      if (prev) {
+        qc.setQueryData<PenyetoranPajakItem[]>(["penyetoranPajak", tahun], prev.filter((p) => p.id !== id));
+      }
+      return { prev };
+    },
     mutationFn: async ({ id, bukuPembantuPajakIds }: { id: string; bukuPembantuPajakIds: string[] }) => {
       // Kembalikan sudahDisetor = false di bukuPembantuPajak
       for (const bppId of bukuPembantuPajakIds) {
-        await update(ref(database, `siskeudesOnline/bukuPembantuPajak/${tahun}/${bppId}`), {
+        await update(ref(database, `siskeudesOnline/tahun/${tahun}/bukuPembantuPajak/${bppId}`), {
           sudahDisetor: false,
           nomorSetor: null,
         });
       }
       // Hapus BKU terkait
-      const bkuRef = ref(database, `siskeudesOnline/bku/${tahun}`);
+      const bkuRef = ref(database, `siskeudesOnline/tahun/${tahun}/bku`);
       const snap = await get(bkuRef);
       if (snap.exists()) {
         const raw = snap.val() as Record<string, { penyetoranPajakId?: string }>;
         for (const [bkuId, bkuItem] of Object.entries(raw)) {
           if (bkuItem.penyetoranPajakId === id) {
-            await remove(ref(database, `siskeudesOnline/bku/${tahun}/${bkuId}`));
+            await remove(ref(database, `siskeudesOnline/tahun/${tahun}/bku/${bkuId}`));
           }
         }
       }
-      await remove(ref(database, `siskeudesOnline/penyetoranPajak/${tahun}/${id}`));
+      await remove(ref(database, `siskeudesOnline/tahun/${tahun}/penyetoranPajak/${id}`));
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["penyetoranPajak", tahun], ctx.prev);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["penyetoranPajak", tahun] });

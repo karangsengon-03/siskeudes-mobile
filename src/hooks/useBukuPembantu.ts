@@ -118,7 +118,7 @@ export function useBukuPajak(bulan?: number) {
 
   useEffect(() => {
     setIsLoading(true);
-    const r = ref(database, `siskeudesOnline/bukuPembantuPajak/${tahun}`);
+    const r = ref(database, `siskeudesOnline/tahun/${tahun}/bukuPembantuPajak`);
     const unsub = onValue(r, (snap) => {
       const raw = snap.val() ?? {};
       const list: BukuPajakItem[] = Object.entries(raw).map(([id, v]) => {
@@ -157,7 +157,7 @@ export function useToggleDisetor() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, sudahDisetor }: { id: string; sudahDisetor: boolean }) => {
-      await update(ref(database, `siskeudesOnline/bukuPembantuPajak/${tahun}/${id}`), { sudahDisetor });
+      await update(ref(database, `siskeudesOnline/tahun/${tahun}/bukuPembantuPajak/${id}`), { sudahDisetor });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["buku-pajak", tahun], exact: false, refetchType: "all" }),
   });
@@ -209,8 +209,8 @@ export function useBukuPanjar(bulan?: number) {
     queryKey: ["buku-panjar", tahun, bulan],
     queryFn: () =>
       new Promise<BukuPanjarRow[]>((resolve, reject) => {
-        const sppRef = ref(database, `siskeudesOnline/spp/${tahun}`);
-        const spjRef = ref(database, `siskeudesOnline/spj/${tahun}`);
+        const sppRef = ref(database, `siskeudesOnline/tahun/${tahun}/spp`);
+        const spjRef = ref(database, `siskeudesOnline/tahun/${tahun}/spj`);
         let sppData: Record<string, SPPItem> = {};
         let spjData: Record<string, SPJItem> = {};
         let loaded = 0;

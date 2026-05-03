@@ -6,17 +6,21 @@ import {
   LayoutDashboard,
   BookMarked,
   BookOpen,
+  BookKey,
   ClipboardList,
   Wallet,
   FileText,
   Settings,
+  Map,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Dashboard",  href: "/dashboard",               icon: LayoutDashboard },
+  { label: "Rencanaan",  href: "/dashboard/perencanaan",   icon: Map },
   { label: "APBDes",     href: "/dashboard/apbdes",        icon: BookOpen },
   { label: "DPA",        href: "/dashboard/dpa",           icon: ClipboardList },
+  { label: "Pembukuan",  href: "/dashboard/pembukuan",     icon: BookKey },
   { label: "Tata Usaha", href: "/dashboard/penatausahaan", icon: Wallet },
   { label: "Buku Bantu", href: "/dashboard/buku-pembantu", icon: BookMarked },
   { label: "Laporan",    href: "/dashboard/pelaporan",     icon: FileText },

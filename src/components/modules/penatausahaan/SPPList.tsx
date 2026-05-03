@@ -12,13 +12,26 @@ import {
 import { useSPP, useCairkanSPP, useDeleteSPP, useUncairkanSPP } from "@/hooks/useSPP";
 import { useSPJ } from "@/hooks/useSPJ";
 import { useSaldoBank, useSaldoTunai } from "@/hooks/useBKU";
+import { useDataDesa } from "@/hooks/useMaster";
 import { FormSPP } from "./FormSPP";
 import { formatRupiah } from "@/lib/utils";
 import { SPPItem } from "@/lib/types";
+import { useAppStore } from "@/store/appStore";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { Banknote, ChevronDown, ChevronUp, Loader2, Pencil, Trash2, Wallet } from "lucide-react";
+import {
+  Banknote, ChevronDown, ChevronUp, Loader2, Pencil, Trash2, Wallet,
+  Printer, FileText, Receipt, ClipboardList,
+} from "lucide-react";
 import { toast } from "sonner";
+import {
+  downloadPDF_SPP1,
+  downloadPDF_SPP2Panjar,
+  downloadPDF_SPP2Definitif,
+  downloadPDF_CAIR,
+  downloadPDF_KWTSemua,
+  downloadPDF_SPTB,
+} from "@/lib/generatePDF";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   draft: "outline",
@@ -34,18 +47,20 @@ export function SPPList() {
   const uncairkan = useUncairkanSPP();
   const saldoBank = useSaldoBank();
   const saldoTunai = useSaldoTunai();
+  const { data: dataDesa } = useDataDesa();
+  const tahun = useAppStore((s) => s.tahunAnggaran);
 
   const [targetCairkan, setTargetCairkan] = useState<SPPItem | null>(null);
   const [targetHapus, setTargetHapus] = useState<SPPItem | null>(null);
   const [targetEdit, setTargetEdit] = useState<SPPItem | null>(null);
-  // Konfirmasi revert BKU sebelum edit/hapus SPP dicairkan
   const [revertFor, setRevertFor] = useState<{ spp: SPPItem; aksi: "edit" | "hapus" } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [cetakMenuId, setCetakMenuId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const adaSPJ = spjList.length > 0;
 
-  // Validasi saldo sebelum cairkan
   function handleClickCairkan(spp: SPPItem) {
     const media = spp.mediaPembayaran ?? "bank";
     if (media === "bank" && saldoBank < spp.totalJumlah) {
@@ -65,7 +80,6 @@ export function SPPList() {
 
   function handleClickEdit(spp: SPPItem) {
     if (spp.status === "dicairkan") {
-      // SPP dicairkan: perlu revert BKU dulu, konfirmasi ke user
       if (adaSPJ) {
         setErrorMsg("Tidak bisa edit SPP yang sudah dicairkan karena masih ada SPJ. Hapus SPJ terkait terlebih dahulu.");
         return;
@@ -73,7 +87,6 @@ export function SPPList() {
       setRevertFor({ spp, aksi: "edit" });
       return;
     }
-    // SPP dikonfirmasi: langsung edit
     if (adaSPJ) {
       setErrorMsg("Tidak bisa edit SPP karena masih ada SPJ. Hapus SPJ terbawah dulu.");
       return;
@@ -111,17 +124,31 @@ export function SPPList() {
     setTargetHapus(null);
   }
 
-  // Jalankan revert BKU lalu lanjut ke aksi (edit atau hapus)
   async function handleKonfirmasiRevert() {
     if (!revertFor) return;
     const { spp, aksi } = revertFor;
     setRevertFor(null);
     await uncairkan.mutateAsync(spp.id);
     toast.success(`${spp.nomorSPP} dikembalikan ke status Dikonfirmasi. Baris BKU terkait dihapus.`);
-    if (aksi === "edit") {
-      setTargetEdit(spp);
-    } else {
-      setTargetHapus(spp);
+    if (aksi === "edit") setTargetEdit(spp);
+    else setTargetHapus(spp);
+  }
+
+  async function handleCetak(spp: SPPItem, jenis: string) {
+    setCetakMenuId(null);
+    setPrinting(true);
+    try {
+      const base = { dataDesa, tahun, spp };
+      if (jenis === "spp1") await downloadPDF_SPP1(base);
+      else if (jenis === "spp2panjar") await downloadPDF_SPP2Panjar(base);
+      else if (jenis === "spp2definitif") await downloadPDF_SPP2Definitif(base);
+      else if (jenis === "cair") await downloadPDF_CAIR(base);
+      else if (jenis === "kwt") await downloadPDF_KWTSemua(base);
+      else if (jenis === "sptb") await downloadPDF_SPTB(base);
+    } catch {
+      toast.error("Gagal mencetak dokumen");
+    } finally {
+      setPrinting(false);
     }
   }
 
@@ -148,8 +175,12 @@ export function SPPList() {
         <div className="divide-y">
           {sppList.map((spp) => {
             const isExpanded = expandedId === spp.id;
+            const isCetakOpen = cetakMenuId === spp.id;
             const rincianArr = Object.values(spp.rincianSPP);
             const media = spp.mediaPembayaran ?? "bank";
+            const isPanjar = spp.jenis === "Panjar";
+            const isDefinitifOrPembiayaan = spp.jenis === "Definitif" || spp.jenis === "Pembiayaan";
+            const sudahCair = spp.status === "dicairkan";
 
             return (
               <div key={spp.id} className="px-4 py-3 space-y-1">
@@ -157,7 +188,6 @@ export function SPPList() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-mono font-medium">{spp.nomorSPP}</span>
                   <div className="flex gap-1 items-center">
-                    {/* Badge media pembayaran */}
                     <Badge variant="outline" className="text-xs gap-1">
                       {media === "bank"
                         ? <Banknote className="h-3 w-3" />
@@ -194,8 +224,81 @@ export function SPPList() {
                     </Button>
                   </div>
 
-                  <div className="flex gap-1">
-                    {/* Edit & Hapus — tersedia untuk dikonfirmasi dan dicairkan */}
+                  <div className="flex gap-1 items-center">
+                    {/* Tombol cetak */}
+                    <div className="relative">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 w-7 p-0"
+                        onClick={() => setCetakMenuId(isCetakOpen ? null : spp.id)}
+                        disabled={printing}
+                        title="Cetak dokumen"
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                      </Button>
+
+                      {isCetakOpen && (
+                        <div className="absolute right-0 top-8 z-50 w-52 rounded-md border bg-popover shadow-md text-xs">
+                          <div className="px-3 py-2 text-muted-foreground font-medium border-b">
+                            Cetak Dokumen SPP
+                          </div>
+                          <button
+                            className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
+                            onClick={() => handleCetak(spp, "spp1")}
+                          >
+                            <FileText className="h-3.5 w-3.5 text-blue-600" />
+                            SPP Lembar 1 (Permohonan)
+                          </button>
+                          {isPanjar && (
+                            <button
+                              className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
+                              onClick={() => handleCetak(spp, "spp2panjar")}
+                            >
+                              <FileText className="h-3.5 w-3.5 text-amber-600" />
+                              SPP Lembar 2 (Panjar)
+                            </button>
+                          )}
+                          {isDefinitifOrPembiayaan && (
+                            <button
+                              className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
+                              onClick={() => handleCetak(spp, "spp2definitif")}
+                            >
+                              <FileText className="h-3.5 w-3.5 text-green-600" />
+                              SPP Lembar 2 (Definitif)
+                            </button>
+                          )}
+                          {sudahCair && (
+                            <>
+                              <div className="border-t" />
+                              <button
+                                className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
+                                onClick={() => handleCetak(spp, "cair")}
+                              >
+                                <Receipt className="h-3.5 w-3.5 text-teal-600" />
+                                Bukti Pencairan (CAIR)
+                              </button>
+                              <button
+                                className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
+                                onClick={() => handleCetak(spp, "kwt")}
+                              >
+                                <Receipt className="h-3.5 w-3.5 text-purple-600" />
+                                Kuitansi (KWT) — Semua
+                              </button>
+                              <button
+                                className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
+                                onClick={() => handleCetak(spp, "sptb")}
+                              >
+                                <ClipboardList className="h-3.5 w-3.5 text-rose-600" />
+                                SPTB
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Edit & Hapus */}
                     {(spp.status === "dikonfirmasi" || spp.status === "dicairkan") && (
                       <>
                         <Button
@@ -218,7 +321,7 @@ export function SPPList() {
                         </Button>
                       </>
                     )}
-                    {/* Cairkan — hanya untuk dikonfirmasi */}
+                    {/* Cairkan */}
                     {spp.status === "dikonfirmasi" && (
                       <Button
                         size="sm"
@@ -249,6 +352,14 @@ export function SPPList() {
         </div>
       </ScrollArea>
 
+      {/* Overlay penutup cetak menu */}
+      {cetakMenuId && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setCetakMenuId(null)}
+        />
+      )}
+
       {/* Sheet Edit SPP */}
       <FormSPP
         open={!!targetEdit}
@@ -269,7 +380,7 @@ export function SPPList() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog konfirmasi revert BKU (sebelum edit/hapus SPP dicairkan) */}
+      {/* Dialog konfirmasi revert BKU */}
       <AlertDialog open={!!revertFor} onOpenChange={(v) => !v && setRevertFor(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

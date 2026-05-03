@@ -17,7 +17,14 @@ export interface DataDesa {
   namaKepala: string;
   namaSekdes: string;
   namaBendahara: string;
+  namaKaur: string;          // Kepala Urusan Keuangan (untuk TTD Pembiayaan)
+  namaPelaksana: string;     // Pelaksana Kegiatan Anggaran (untuk TTD RAB)
   kodePos?: string;
+  kodeDesa: string;          // untuk penomoran dokumen, contoh: "14.2007"
+  nomorPeraturanDesa: string;      // contoh: "05"
+  tanggalPeraturanDesa: string;    // contoh: "22 January 2024"
+  nomorPeraturanKepDes: string;    // contoh: "03"
+  tanggalPeraturanKepDes: string;  // contoh: "22 January 2024"
 }
 
 // ─── Hook Data Desa ───────────────────────────────────────────────

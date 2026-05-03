@@ -27,7 +27,8 @@ import { Badge } from "@/components/ui/badge";
 import { useBidangKegiatan } from "@/hooks/useMaster";
 import { BIDANG_KEGIATAN } from "@/lib/constants/bidangKegiatan";
 import { useSaveKegiatan } from "@/hooks/useAPBDes";
-import type { KegiatanAPBDes, SumberDana } from "@/lib/types";
+import { usePerencanaan, usePerencanaanMeta } from "@/hooks/usePerencanaan";
+import type { KegiatanAPBDes, SumberDana, APBDesVariant } from "@/lib/types";
 import { formatRupiah } from "@/lib/utils";
 
 // Kode rekening belanja level 4 (rincian obyek)
@@ -145,11 +146,29 @@ interface Props {
   open: boolean;
   onClose: () => void;
   editData?: KegiatanAPBDes | null;
+  variant?: APBDesVariant;
+  readOnly?: boolean;
 }
 
-export function FormKegiatan({ open, onClose, editData }: Props) {
+export function FormKegiatan({ open, onClose, editData, variant = "awal", readOnly = false }: Props) {
   const { bidang: bidangList } = useBidangKegiatan();
-  const saveKegiatan = useSaveKegiatan();
+  const saveKegiatan = useSaveKegiatan(variant);
+
+  // Integrasi Perencanaan — validasi pagu
+  const { data: perencanaanItems = [] } = usePerencanaan();
+  const { data: perencanaanMeta } = usePerencanaanMeta();
+  const isPerencanaanTerkunci = perencanaanMeta?.statusGlobal === "terkunci";
+
+  // Map kodeKegiatan → nilaiPagu dari perencanaan
+  const paguMap = perencanaanItems.reduce<Record<string, number>>((acc, item) => {
+    acc[item.kegiatan] = (acc[item.kegiatan] ?? 0) + item.nilaiPagu;
+    return acc;
+  }, {});
+
+  // Daftar kode kegiatan yang boleh dipilih (jika terkunci)
+  const allowedKegiatan = isPerencanaanTerkunci
+    ? new Set(perencanaanItems.map((i) => i.kegiatan))
+    : null;
 
   const [expandedRekening, setExpandedRekening] = useState<Record<string, boolean>>({});
 
@@ -244,6 +263,22 @@ export function FormKegiatan({ open, onClose, editData }: Props) {
     for (const r of data.rekeningList) {
       if (!r.kodeRekening) { toast.error("Pilih kode rekening untuk semua item"); return; }
       if (r.subItems.length === 0) { toast.error("Setiap rekening wajib memiliki minimal 1 sub-item RAB"); return; }
+    }
+
+    // Validasi pagu perencanaan (hanya jika terkunci)
+    if (isPerencanaanTerkunci && data.kodeKegiatan) {
+      if (allowedKegiatan && !allowedKegiatan.has(data.kodeKegiatan)) {
+        toast.error("Kegiatan ini tidak ada dalam daftar Perencanaan. Buka kunci perencanaan untuk menambah.");
+        return;
+      }
+      const pagu = paguMap[data.kodeKegiatan];
+      if (pagu !== undefined) {
+        const grandTotal = data.rekeningList.reduce((acc, _, idx) => acc + calcTotalRekening(idx), 0);
+        if (grandTotal > pagu) {
+          toast.error(`Nilai APBDes (${formatRupiah(grandTotal)}) melebihi pagu perencanaan (${formatRupiah(pagu)})`);
+          return;
+        }
+      }
     }
 
     const bidangData = bidangList.find((b) => b.kode === data.bidangKode);
@@ -380,8 +415,15 @@ export function FormKegiatan({ open, onClose, editData }: Props) {
                     </SelectTrigger>
                     <SelectContent>
                       {kegiatanList.map((k) => (
-                        <SelectItem key={k.kode} value={k.kode}>
+                        <SelectItem
+                          key={k.kode}
+                          value={k.kode}
+                          disabled={isPerencanaanTerkunci && allowedKegiatan !== null && !allowedKegiatan.has(k.kode)}
+                        >
                           {k.kode} {k.uraian}
+                          {isPerencanaanTerkunci && allowedKegiatan !== null && !allowedKegiatan.has(k.kode) && (
+                            <span className="ml-1 text-muted-foreground text-[10px]">(tidak direncanakan)</span>
+                          )}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -411,6 +453,41 @@ export function FormKegiatan({ open, onClose, editData }: Props) {
                   {formatRupiah(calcGrandTotal())}
                 </span>
               </div>
+
+              {/* Pagu Warning — hanya tampil jika perencanaan terkunci & kegiatan dipilih */}
+              {(() => {
+                const kodeKeg = watch("kodeKegiatan");
+                if (!isPerencanaanTerkunci || !kodeKeg) return null;
+                const pagu = paguMap[kodeKeg];
+                if (pagu === undefined) {
+                  return (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                      ⚠ Kegiatan ini tidak ada dalam Perencanaan. Simpan akan ditolak.
+                    </div>
+                  );
+                }
+                const gt = calcGrandTotal();
+                const pct = pagu > 0 ? (gt / pagu) * 100 : 0;
+                if (gt > pagu) {
+                  return (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                      🔴 Melebihi pagu perencanaan: {formatRupiah(pagu)} (selisih {formatRupiah(gt - pagu)})
+                    </div>
+                  );
+                }
+                if (pct >= 80) {
+                  return (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      ⚠ Mendekati pagu perencanaan: {formatRupiah(pagu)} ({pct.toFixed(0)}% terpakai)
+                    </div>
+                  );
+                }
+                return (
+                  <div className="rounded-lg border px-3 py-2 text-xs text-muted-foreground">
+                    Pagu perencanaan: {formatRupiah(pagu)} (sisa {formatRupiah(pagu - gt)})
+                  </div>
+                );
+              })()}
 
               {rekeningFields.map((field, rIdx) => {
                 const isExp = expandedRekening[field.id] !== false;

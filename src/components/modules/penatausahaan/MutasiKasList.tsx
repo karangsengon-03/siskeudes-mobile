@@ -136,7 +136,7 @@ export function MutasiKasList() {
       </AlertDialog>
 
       <Dialog open={!!targetEdit} onOpenChange={(v) => { if (!v) setTargetEdit(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Mutasi Kas</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-2">
             <div className="space-y-1"><Label className="text-xs">Tanggal</Label><Input type="date" value={editTanggal} onChange={(e) => setEditTanggal(e.target.value)} /></div>

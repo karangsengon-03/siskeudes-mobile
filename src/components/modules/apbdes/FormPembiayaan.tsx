@@ -206,7 +206,7 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
 
       {/* Dialog Form */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editItem ? "Edit Pembiayaan" : "Tambah Pembiayaan"}</DialogTitle>
           </DialogHeader>

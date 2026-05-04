@@ -165,7 +165,7 @@ export function PenerimaanList() {
 
       {/* Dialog edit */}
       <Dialog open={!!targetEdit} onOpenChange={(v) => { if (!v) setTargetEdit(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Penerimaan</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-2">
             <div className="space-y-1">

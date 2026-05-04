@@ -78,7 +78,7 @@ function DialogSahkan({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Sahkan {variantLabel}</DialogTitle>
         </DialogHeader>

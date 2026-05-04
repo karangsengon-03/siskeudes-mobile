@@ -52,7 +52,7 @@ export function FormMutasiKas({ open, onClose }: FormMutasiKasProps) {
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
-        <DialogContent className="max-w-md w-full">
+        <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Mutasi Kas — Penarikan Bank ke Tunai</DialogTitle>
           </DialogHeader>

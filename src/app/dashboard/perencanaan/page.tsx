@@ -433,7 +433,7 @@ export default function PerencanaanPage() {
 
       {/* ── Dialog Form Tambah/Edit ── */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editTarget ? "Edit Rencana Kegiatan" : "Tambah Rencana Kegiatan"}

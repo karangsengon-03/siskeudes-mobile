@@ -1,7 +1,7 @@
 "use client";
 
 // src/app/dashboard/perencanaan/page.tsx
-// Modul Perencanaan — model UI mengikuti APBDes (sidebar kiri, konten kanan)
+// Modul Perencanaan — sidebar kiri (model APBDes), form tambah/edit pakai Sheet bawah
 
 import { useState } from "react";
 import { formatRupiah } from "@/lib/utils";
@@ -22,12 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Lock,
   LockOpen,
@@ -183,6 +184,12 @@ export default function PerencanaanPage() {
     setShowForm(true);
   }
 
+  function closeForm() {
+    setShowForm(false);
+    setEditTarget(null);
+    setForm(emptyForm);
+  }
+
   async function handleSubmit() {
     if (!form.kegiatan) { toast.error("Pilih kegiatan terlebih dahulu"); return; }
     if (!form.nilaiPagu || parseCurrency(form.nilaiPagu) <= 0) { toast.error("Nilai pagu harus lebih dari 0"); return; }
@@ -209,7 +216,7 @@ export default function PerencanaanPage() {
         await tambah.mutateAsync(payload);
         toast.success("Kegiatan berhasil ditambahkan");
       }
-      setShowForm(false);
+      closeForm();
     } catch {
       toast.error("Gagal menyimpan, coba lagi");
     }
@@ -264,9 +271,7 @@ export default function PerencanaanPage() {
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">{totalKegiatan} kegiatan</p>
-            <p className="text-sm font-bold tabular-nums text-primary">
-              {formatRupiah(totalPagu)}
-            </p>
+            <p className="text-sm font-bold tabular-nums text-primary">{formatRupiah(totalPagu)}</p>
           </div>
         </div>
 
@@ -305,16 +310,13 @@ export default function PerencanaanPage() {
       {/* ── Split panel ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Sidebar kiri — navigasi bidang */}
+        {/* Sidebar kiri */}
         <div className="w-44 shrink-0 border-r flex flex-col overflow-y-auto">
-          {/* Semua */}
           <button
             onClick={() => setActiveBidang("semua")}
             className={cn(
               "w-full text-left px-3 py-3.5 border-b transition-colors border-l-2",
-              activeBidang === "semua"
-                ? "bg-primary/10 border-l-primary"
-                : "hover:bg-muted/50 border-l-transparent"
+              activeBidang === "semua" ? "bg-primary/10 border-l-primary" : "hover:bg-muted/50 border-l-transparent"
             )}
           >
             <div className="flex items-center gap-2 mb-1">
@@ -322,24 +324,19 @@ export default function PerencanaanPage() {
                 "text-xs font-bold w-5 h-5 rounded flex items-center justify-center shrink-0",
                 activeBidang === "semua" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               )}>∑</span>
-              <span className={cn("text-xs font-semibold", activeBidang === "semua" ? "text-primary" : "")}>
-                Semua
-              </span>
+              <span className={cn("text-xs font-semibold", activeBidang === "semua" ? "text-primary" : "")}>Semua</span>
             </div>
             <p className="text-xs text-muted-foreground pl-7">{totalKegiatan} kegiatan</p>
             <p className="text-xs font-medium tabular-nums pl-7 text-primary">{formatRupiah(totalPagu)}</p>
           </button>
 
-          {/* Per bidang */}
           {bidangList.map((b) => (
             <button
               key={b.kode}
               onClick={() => setActiveBidang(b.kode)}
               className={cn(
                 "w-full text-left px-3 py-3.5 border-b transition-colors border-l-2",
-                activeBidang === b.kode
-                  ? "bg-primary/10 border-l-primary"
-                  : "hover:bg-muted/50 border-l-transparent"
+                activeBidang === b.kode ? "bg-primary/10 border-l-primary" : "hover:bg-muted/50 border-l-transparent"
               )}
             >
               <div className="flex items-center gap-2 mb-1">
@@ -435,17 +432,19 @@ export default function PerencanaanPage() {
         </div>
       </div>
 
-      {/* ── Dialog Form Tambah/Edit ── */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editTarget ? "Edit Rencana Kegiatan" : "Tambah Rencana Kegiatan"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
+      {/* ── Sheet Form Tambah/Edit (model APBDes — bottom sheet) ── */}
+      <Sheet open={showForm} onOpenChange={(v) => { if (!v) closeForm(); }}>
+        <SheetContent side="bottom" className="h-[90dvh] flex flex-col p-0 overflow-hidden" style={{ maxHeight: "90dvh" }}>
+          <SheetHeader className="px-4 pt-4 pb-2 shrink-0 border-b">
+            <SheetTitle>{editTarget ? "Edit Rencana Kegiatan" : "Tambah Rencana Kegiatan"}</SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            {/* Kegiatan */}
             <div className="space-y-1.5">
               <Label>Kegiatan *</Label>
               <Select value={form.kegiatan} onValueChange={(v) => setForm((f) => ({ ...f, kegiatan: v }))}>
-                <SelectTrigger className="w-full text-left h-auto min-h-10">
+                <SelectTrigger className="w-full h-auto min-h-10 text-left">
                   <SelectValue placeholder="Pilih kegiatan..." />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -471,6 +470,10 @@ export default function PerencanaanPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            <Separator />
+
+            {/* Output / Keluaran */}
             <div className="space-y-1.5">
               <Label>Output / Keluaran</Label>
               <Textarea
@@ -480,6 +483,8 @@ export default function PerencanaanPage() {
                 rows={2}
               />
             </div>
+
+            {/* Waktu Pelaksanaan */}
             <div className="space-y-1.5">
               <Label>Waktu Pelaksanaan (Tahun)</Label>
               <Input
@@ -489,6 +494,8 @@ export default function PerencanaanPage() {
                 onChange={(e) => setForm((f) => ({ ...f, waktuPelaksanaan: e.target.value }))}
               />
             </div>
+
+            {/* Nilai Pagu */}
             <div className="space-y-1.5">
               <Label>Nilai Pagu (Rp) *</Label>
               <Input
@@ -498,18 +505,26 @@ export default function PerencanaanPage() {
                 onChange={(e) => setForm((f) => ({ ...f, nilaiPagu: formatCurrencyInput(e.target.value) }))}
               />
               {form.nilaiPagu && (
-                <p className="text-xs text-muted-foreground">{formatRupiah(parseCurrency(form.nilaiPagu))}</p>
+                <p className="text-xs font-semibold text-primary">{formatRupiah(parseCurrency(form.nilaiPagu))}</p>
               )}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowForm(false)}>Batal</Button>
-            <Button onClick={handleSubmit} disabled={tambah.isPending || update.isPending}>
-              {tambah.isPending || update.isPending ? "Menyimpan..." : "Simpan"}
+
+          <SheetFooter className="px-4 py-3 border-t shrink-0 flex-row gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={closeForm}>
+              Batal
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={handleSubmit}
+              disabled={tambah.isPending || update.isPending}
+            >
+              {tambah.isPending || update.isPending ? "Menyimpan..." : "Simpan Kegiatan"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* ── AlertDialog Hapus ── */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>

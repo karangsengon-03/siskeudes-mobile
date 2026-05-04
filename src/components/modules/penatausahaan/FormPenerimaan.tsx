@@ -43,16 +43,20 @@ export function FormPenerimaan({ open, onClose }: FormPenerimaanProps) {
 
   async function handleKonfirmasi() {
     setKonfirmOpen(false);
-    await addPenerimaan.mutateAsync({
-      tanggal,
-      jenisPenerimaan: jenis,
-      sumberDana,
-      uraian,
-      jumlah: parseFloat(jumlah),
-    });
-    toast.success("Penerimaan berhasil disimpan & masuk BKU");
-    reset();
-    onClose();
+    try {
+      await addPenerimaan.mutateAsync({
+        tanggal,
+        jenisPenerimaan: jenis,
+        sumberDana,
+        uraian,
+        jumlah: parseFloat(jumlah),
+      });
+      toast.success("Penerimaan berhasil disimpan & masuk BKU");
+      reset();
+      onClose();
+    } catch {
+      toast.error("Gagal menyimpan penerimaan, coba lagi");
+    }
   }
 
   return (

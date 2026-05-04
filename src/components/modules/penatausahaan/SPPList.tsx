@@ -112,26 +112,38 @@ export function SPPList() {
 
   async function handleCairkan() {
     if (!targetCairkan) return;
-    await cairkan.mutateAsync(targetCairkan);
-    toast.success(`${targetCairkan.nomorSPP} dicairkan & masuk BKU`);
-    setTargetCairkan(null);
+    try {
+      await cairkan.mutateAsync(targetCairkan);
+      toast.success(`${targetCairkan.nomorSPP} dicairkan & masuk BKU`);
+      setTargetCairkan(null);
+    } catch {
+      toast.error("Gagal mencairkan SPP, coba lagi");
+    }
   }
 
   async function handleHapus() {
     if (!targetHapus) return;
-    await hapus.mutateAsync(targetHapus.id);
-    toast.success(`${targetHapus.nomorSPP} dihapus`);
-    setTargetHapus(null);
+    try {
+      await hapus.mutateAsync(targetHapus.id);
+      toast.success(`${targetHapus.nomorSPP} dihapus`);
+      setTargetHapus(null);
+    } catch {
+      toast.error("Gagal menghapus SPP, coba lagi");
+    }
   }
 
   async function handleKonfirmasiRevert() {
     if (!revertFor) return;
     const { spp, aksi } = revertFor;
     setRevertFor(null);
-    await uncairkan.mutateAsync(spp.id);
-    toast.success(`${spp.nomorSPP} dikembalikan ke status Dikonfirmasi. Baris BKU terkait dihapus.`);
-    if (aksi === "edit") setTargetEdit(spp);
-    else setTargetHapus(spp);
+    try {
+      await uncairkan.mutateAsync(spp.id);
+      toast.success(`${spp.nomorSPP} dikembalikan ke status Dikonfirmasi. Baris BKU terkait dihapus.`);
+      if (aksi === "edit") setTargetEdit(spp);
+      else setTargetHapus(spp);
+    } catch {
+      toast.error("Gagal membatalkan pencairan SPP, coba lagi");
+    }
   }
 
   async function handleCetak(spp: SPPItem, jenis: string) {

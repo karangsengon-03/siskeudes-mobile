@@ -39,10 +39,14 @@ export function FormMutasiKas({ open, onClose }: FormMutasiKasProps) {
 
   async function handleKonfirmasi() {
     setKonfirmOpen(false);
-    await addMutasi.mutateAsync({ tanggal, jenis: "bank_ke_tunai", uraian, jumlah: jumlahNum });
-    toast.success("Mutasi kas berhasil — bank → tunai");
-    reset();
-    onClose();
+    try {
+      await addMutasi.mutateAsync({ tanggal, jenis: "bank_ke_tunai", uraian, jumlah: jumlahNum });
+      toast.success("Mutasi kas berhasil — bank → tunai");
+      reset();
+      onClose();
+    } catch {
+      toast.error("Gagal menyimpan mutasi kas, coba lagi");
+    }
   }
 
   return (

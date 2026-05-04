@@ -400,34 +400,38 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
       };
     });
 
-    if (editItem) {
-      await editSPP.mutateAsync({
-        id: editItem.id,
-        tanggal,
-        jenis,
-        mediaPembayaran,
-        uraian,
-        kegiatanId: selKegiatan.id,
-        kegiatanNama: selKegiatan.namaKegiatan,
-        rincianSPP,
-        totalJumlah,
-      });
-      toast.success("SPP berhasil diperbarui");
-    } else {
-      await addSPP.mutateAsync({
-        tanggal,
-        jenis,
-        mediaPembayaran,
-        uraian,
-        kegiatanId: selKegiatan.id,
-        kegiatanNama: selKegiatan.namaKegiatan,
-        rincianSPP,
-        totalJumlah,
-      });
-      toast.success("SPP berhasil disimpan");
+    try {
+      if (editItem) {
+        await editSPP.mutateAsync({
+          id: editItem.id,
+          tanggal,
+          jenis,
+          mediaPembayaran,
+          uraian,
+          kegiatanId: selKegiatan.id,
+          kegiatanNama: selKegiatan.namaKegiatan,
+          rincianSPP,
+          totalJumlah,
+        });
+        toast.success("SPP berhasil diperbarui");
+      } else {
+        await addSPP.mutateAsync({
+          tanggal,
+          jenis,
+          mediaPembayaran,
+          uraian,
+          kegiatanId: selKegiatan.id,
+          kegiatanNama: selKegiatan.namaKegiatan,
+          rincianSPP,
+          totalJumlah,
+        });
+        toast.success("SPP berhasil disimpan");
+      }
+      resetForm();
+      onClose();
+    } catch {
+      toast.error("Gagal menyimpan SPP, coba lagi");
     }
-    resetForm();
-    onClose();
   }
 
   return (

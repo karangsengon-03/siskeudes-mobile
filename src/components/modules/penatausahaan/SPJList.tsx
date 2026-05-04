@@ -319,9 +319,13 @@ export function SPJList() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={async () => {
-                await hapus.mutateAsync(targetHapus!.id);
-                toast.success("SPJ dihapus");
-                setTargetHapus(null);
+                try {
+                  await hapus.mutateAsync(targetHapus!.id);
+                  toast.success("SPJ dihapus");
+                  setTargetHapus(null);
+                } catch {
+                  toast.error("Gagal menghapus SPJ, coba lagi");
+                }
               }}
             >
               Hapus

@@ -120,37 +120,61 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
     const jumlah = parseFloat(raw) || 0;
     const existing = bulanData[bulanKe]?.jumlah ?? 0;
     if (jumlah === existing) return;
-    await saveBulan.mutateAsync({ kegiatanId: kegiatan.id, bulanKe, jumlah });
+    try {
+      await saveBulan.mutateAsync({ kegiatanId: kegiatan.id, bulanKe, jumlah });
+    } catch {
+      toast.error("Gagal menyimpan isian bulan, coba lagi");
+    }
   };
 
   const handleKonfirmasi = async () => {
     if (totalDPA === 0) { toast.error("Isi minimal 1 bulan sebelum dikonfirmasi"); return; }
     if (melebihi) { toast.error("Total DPA melebihi pagu APBDes"); return; }
-    await updateMeta.mutateAsync({ kegiatanId: kegiatan.id, status: "dikonfirmasi" });
-    toast.success("DPA dikonfirmasi");
+    try {
+      await updateMeta.mutateAsync({ kegiatanId: kegiatan.id, status: "dikonfirmasi" });
+      toast.success("DPA dikonfirmasi");
+    } catch {
+      toast.error("Gagal mengkonfirmasi DPA, coba lagi");
+    }
   };
 
   const handleBukaKembali = async () => {
-    await updateMeta.mutateAsync({ kegiatanId: kegiatan.id, status: "draft" });
-    toast.success("DPA dibuka kembali ke draft");
+    try {
+      await updateMeta.mutateAsync({ kegiatanId: kegiatan.id, status: "draft" });
+      toast.success("DPA dibuka kembali ke draft");
+    } catch {
+      toast.error("Gagal membuka DPA, coba lagi");
+    }
   };
 
   const handleToggleDPAL = async (val: boolean) => {
-    await updateMeta.mutateAsync({
-      kegiatanId: kegiatan.id,
-      isDPAL: val,
-      sumberDPAL: val ? sumberDPAL || String(parseInt(String(tahun)) - 1) : "",
-    });
+    try {
+      await updateMeta.mutateAsync({
+        kegiatanId: kegiatan.id,
+        isDPAL: val,
+        sumberDPAL: val ? sumberDPAL || String(parseInt(String(tahun)) - 1) : "",
+      });
+    } catch {
+      toast.error("Gagal mengubah status DPA-L, coba lagi");
+    }
   };
 
   const handleSumberDPAL = async (val: string) => {
-    await updateMeta.mutateAsync({ kegiatanId: kegiatan.id, sumberDPAL: val });
+    try {
+      await updateMeta.mutateAsync({ kegiatanId: kegiatan.id, sumberDPAL: val });
+    } catch {
+      toast.error("Gagal menyimpan sumber DPA-L");
+    }
   };
 
   const handleResetDPA = async () => {
     setKonfirmasiReset(false);
-    await resetDPA.mutateAsync({ kegiatanId: kegiatan.id });
-    toast.success("Data DPA direset. Semua isian bulan dihapus.");
+    try {
+      await resetDPA.mutateAsync({ kegiatanId: kegiatan.id });
+      toast.success("Data DPA direset. Semua isian bulan dihapus.");
+    } catch {
+      toast.error("Gagal mereset DPA, coba lagi");
+    }
   };
 
   return (

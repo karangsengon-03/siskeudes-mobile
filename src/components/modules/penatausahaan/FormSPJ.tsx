@@ -158,22 +158,26 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
     pajakList.forEach((p) => {
       pajakRecord[p.id] = { id: p.id, kode: p.kode, nama: p.nama, tarif: p.tarif, dasarPengenaan: parseFloat(p.dasarPengenaan), jumlahPajak: p.jumlahPajak };
     });
-    if (editItem) {
-      await useEditSPJInstance.mutateAsync({
-        spjId: editItem.id, tanggal, sppId, nomorSPP: sppAktif.nomorSPP, kegiatanNama: sppAktif.kegiatanNama,
-        nilaiSPP, nilaiRealisasi: realisasi, sisaPanjar, mediaPembayaran: sppAktif.mediaPembayaran ?? "bank",
-        pajakList: pajakRecord, totalPajak,
-      });
-      toast.success("SPJ berhasil diperbarui");
-    } else {
-      await addSPJ.mutateAsync({
-        tanggal, sppId, nomorSPP: sppAktif.nomorSPP, kegiatanNama: sppAktif.kegiatanNama,
-        nilaiSPP, nilaiRealisasi: realisasi, sisaPanjar, mediaPembayaran: sppAktif.mediaPembayaran ?? "bank",
-        pajakList: pajakRecord, totalPajak,
-      });
-      toast.success("SPJ berhasil disahkan");
+    try {
+      if (editItem) {
+        await useEditSPJInstance.mutateAsync({
+          spjId: editItem.id, tanggal, sppId, nomorSPP: sppAktif.nomorSPP, kegiatanNama: sppAktif.kegiatanNama,
+          nilaiSPP, nilaiRealisasi: realisasi, sisaPanjar, mediaPembayaran: sppAktif.mediaPembayaran ?? "bank",
+          pajakList: pajakRecord, totalPajak,
+        });
+        toast.success("SPJ berhasil diperbarui");
+      } else {
+        await addSPJ.mutateAsync({
+          tanggal, sppId, nomorSPP: sppAktif.nomorSPP, kegiatanNama: sppAktif.kegiatanNama,
+          nilaiSPP, nilaiRealisasi: realisasi, sisaPanjar, mediaPembayaran: sppAktif.mediaPembayaran ?? "bank",
+          pajakList: pajakRecord, totalPajak,
+        });
+        toast.success("SPJ berhasil disahkan");
+      }
+      reset(); onClose();
+    } catch {
+      toast.error("Gagal menyimpan SPJ, coba lagi");
     }
-    reset(); onClose();
   }
 
   return (

@@ -96,20 +96,24 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
       };
     });
 
-    await addSetor.mutateAsync({
-      tanggal,
-      kodePajak: kodePajakList[0],
-      namaPajak: namaGabung,
-      jumlah: totalSetor,
-      jenisPembayaran,
-      uraian: `Penyetoran pajak ${namaGabung}`,
-      bukuPembantuPajakIds: selectedIds,
-      perKodePajak,
-    } as any);
+    try {
+      await addSetor.mutateAsync({
+        tanggal,
+        kodePajak: kodePajakList[0],
+        namaPajak: namaGabung,
+        jumlah: totalSetor,
+        jenisPembayaran,
+        uraian: `Penyetoran pajak ${namaGabung}`,
+        bukuPembantuPajakIds: selectedIds,
+        perKodePajak,
+      } as any);
 
-    toast.success("Penyetoran pajak berhasil dicatat");
-    reset();
-    onClose();
+      toast.success("Penyetoran pajak berhasil dicatat");
+      reset();
+      onClose();
+    } catch {
+      toast.error("Gagal menyimpan penyetoran pajak, coba lagi");
+    }
   }
 
   return (

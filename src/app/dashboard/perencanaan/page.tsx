@@ -1,10 +1,11 @@
 "use client";
 
 // src/app/dashboard/perencanaan/page.tsx
-// Modul Perencanaan — Daftar kegiatan + Kunci/Buka Kunci
+// Modul Perencanaan — model UI mengikuti APBDes (sidebar kiri, konten kanan)
 
 import { useState } from "react";
 import { formatRupiah } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/appStore";
 import {
   usePerencanaan,
@@ -45,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Lock,
   LockOpen,
@@ -52,11 +54,9 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
-  Info,
   Map,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -97,8 +97,6 @@ function formatCurrencyInput(val: string): string {
   return num ? Number(num).toLocaleString("id-ID") : "";
 }
 
-// ── Form State ────────────────────────────────────────────────
-
 interface FormState {
   kegiatan: string;
   waktuPelaksanaan: string;
@@ -126,22 +124,42 @@ export default function PerencanaanPage() {
   const hapus = useDeletePerencanaan();
   const setStatus = useSetStatusPerencanaan();
 
-  // Dialog state
+  const [activeBidang, setActiveBidang] = useState<string>("semua");
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<ItemPerencanaan | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ItemPerencanaan | null>(null);
   const [showLockConfirm, setShowLockConfirm] = useState(false);
-
-  // Form state
   const [form, setForm] = useState<FormState>(emptyForm);
 
   const isTerkunci = meta?.statusGlobal === "terkunci";
   const loading = loadingItems || loadingMeta;
 
-  // Total pagu
   const totalPagu = items.reduce((sum: number, i: ItemPerencanaan) => sum + i.nilaiPagu, 0);
+  const totalKegiatan = items.length;
 
-  // Kegiatan yang sudah ada (untuk duplicate check)
+  const bidangList = BIDANG_KEGIATAN.map((b) => {
+    const count = items.filter((i: ItemPerencanaan) => i.bidang === b.kode).length;
+    const pagu = items
+      .filter((i: ItemPerencanaan) => i.bidang === b.kode)
+      .reduce((s: number, i: ItemPerencanaan) => s + i.nilaiPagu, 0);
+    return { kode: b.kode, nama: b.uraian, count, pagu };
+  });
+
+  const filteredItems =
+    activeBidang === "semua"
+      ? items
+      : items.filter((i: ItemPerencanaan) => i.bidang === activeBidang);
+
+  const grouped = filteredItems.reduce<Record<string, ItemPerencanaan[]>>(
+    (acc: Record<string, ItemPerencanaan[]>, item: ItemPerencanaan) => {
+      const key = `${item.subBidang}|${item.subBidangNama}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    },
+    {}
+  );
+
   const kegiatanExisting = new Set(
     items
       .filter((i: ItemPerencanaan) => !editTarget || i.id !== editTarget.id)
@@ -154,7 +172,8 @@ export default function PerencanaanPage() {
     setShowForm(true);
   }
 
-  function openEdit(item: ItemPerencanaan) {    setEditTarget(item);
+  function openEdit(item: ItemPerencanaan) {
+    setEditTarget(item);
     setForm({
       kegiatan: item.kegiatan,
       waktuPelaksanaan: String(item.waktuPelaksanaan),
@@ -164,23 +183,10 @@ export default function PerencanaanPage() {
     setShowForm(true);
   }
 
-  function handleKegiatanChange(kode: string) {
-    setForm((f) => ({ ...f, kegiatan: kode }));
-  }
-
   async function handleSubmit() {
-    if (!form.kegiatan) {
-      toast.error("Pilih kegiatan terlebih dahulu");
-      return;
-    }
-    if (!form.nilaiPagu || parseCurrency(form.nilaiPagu) <= 0) {
-      toast.error("Nilai pagu harus lebih dari 0");
-      return;
-    }
-    if (kegiatanExisting.has(form.kegiatan)) {
-      toast.error("Kegiatan sudah ada dalam daftar perencanaan");
-      return;
-    }
+    if (!form.kegiatan) { toast.error("Pilih kegiatan terlebih dahulu"); return; }
+    if (!form.nilaiPagu || parseCurrency(form.nilaiPagu) <= 0) { toast.error("Nilai pagu harus lebih dari 0"); return; }
+    if (kegiatanExisting.has(form.kegiatan)) { toast.error("Kegiatan sudah ada dalam daftar perencanaan"); return; }
 
     const keg = ALL_KEGIATAN.find((k) => k.kodeKegiatan === form.kegiatan)!;
     const payload = {
@@ -223,10 +229,9 @@ export default function PerencanaanPage() {
 
   async function handleToggleLock() {
     if (isTerkunci) {
-      // Langsung buka kunci tanpa konfirmasi
       try {
         await setStatus.mutateAsync("draft");
-        toast.success("Perencanaan dibuka — APBDes dapat diubah bebas");
+        toast.success("Perencanaan dibuka");
       } catch {
         toast.error("Gagal membuka kunci");
       }
@@ -238,216 +243,208 @@ export default function PerencanaanPage() {
   async function confirmLock() {
     try {
       await setStatus.mutateAsync("terkunci");
-      toast.success("Perencanaan dikunci — APBDes hanya bisa input kegiatan yang ada di sini");
+      toast.success("Perencanaan dikunci");
       setShowLockConfirm(false);
     } catch {
       toast.error("Gagal mengunci perencanaan");
     }
   }
 
-  // Group by bidang for display
-  const grouped = items.reduce<Record<string, ItemPerencanaan[]>>((acc: Record<string, ItemPerencanaan[]>, item: ItemPerencanaan) => {
-    const key = `${item.bidang}|${item.bidangNama}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(item);
-    return acc;
-  }, {});
-
   return (
-    <div className="p-4 space-y-4 pb-20 md:pb-4">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold">Perencanaan</h1>
-          <p className="text-xs text-muted-foreground">TA {tahun}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={isTerkunci ? "destructive" : "outline"}
-            onClick={handleToggleLock}
-            disabled={setStatus.isPending || loading}
-          >
-            {isTerkunci ? (
-              <>
-                <LockOpen className="h-3.5 w-3.5 mr-1.5" />
-                Buka Kunci
-              </>
-            ) : (
-              <>
-                <Lock className="h-3.5 w-3.5 mr-1.5" />
-                Kunci
-              </>
-            )}
-          </Button>
-          {!isTerkunci && (
-            <Button size="sm" onClick={openTambah} disabled={loading}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Tambah
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Status Banner */}
-      {isTerkunci && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-          <Lock className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+    <div
+      className="flex flex-col -m-4"
+      style={{ height: "calc(100svh - 56px)", maxHeight: "calc(100svh - 56px)" }}
+    >
+      {/* ── Top bar ── */}
+      <div className="shrink-0 px-4 py-2.5 border-b space-y-2">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium">Perencanaan Terkunci</p>
-            <p className="mt-0.5 text-amber-700">
-              APBDes hanya dapat menginput kegiatan yang terdaftar di sini.
-              Nilai APBDes per kegiatan tidak boleh melebihi pagu perencanaan.
-            </p>
+            <h1 className="text-base font-bold leading-tight">Perencanaan {tahun}</h1>
+            <p className="text-xs text-muted-foreground">Rencana Kegiatan & Pagu Anggaran</p>
           </div>
-        </div>
-      )}
-
-      {!isTerkunci && items.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
-          <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-600" />
-          <p>
-            Kunci perencanaan setelah selesai agar APBDes hanya bisa input kegiatan yang sudah direncanakan.
-          </p>
-        </div>
-      )}
-
-      {/* Summary */}
-      {!loading && items.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground">Total Kegiatan</p>
-            <p className="text-xl font-bold mt-1">{items.length}</p>
-          </div>
-          <div className="rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground">Total Pagu</p>
-            <p className="text-base font-bold mt-1 text-primary">
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">{totalKegiatan} kegiatan</p>
+            <p className="text-sm font-bold tabular-nums text-primary">
               {formatRupiah(totalPagu)}
             </p>
           </div>
         </div>
-      )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-semibold",
+            isTerkunci ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20" : "border-muted"
+          )}>
+            {isTerkunci
+              ? <><Lock className="h-3 w-3 text-amber-500" /><span className="text-amber-600">Terkunci</span></>
+              : <><LockOpen className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Draft</span></>
+            }
+          </div>
+          <div className="ml-auto flex gap-2">
+            <Button
+              size="sm"
+              variant={isTerkunci ? "destructive" : "outline"}
+              className="text-xs h-7"
+              onClick={handleToggleLock}
+              disabled={setStatus.isPending || loading}
+            >
+              {isTerkunci
+                ? <><LockOpen className="h-3 w-3 mr-1" />Buka Kunci</>
+                : <><Lock className="h-3 w-3 mr-1" />Kunci</>
+              }
+            </Button>
+            {!isTerkunci && (
+              <Button size="sm" className="text-xs h-7" onClick={openTambah} disabled={loading}>
+                <Plus className="h-3 w-3 mr-1" />Tambah
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Split panel ── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Sidebar kiri — navigasi bidang */}
+        <div className="w-44 shrink-0 border-r flex flex-col overflow-y-auto">
+          {/* Semua */}
+          <button
+            onClick={() => setActiveBidang("semua")}
+            className={cn(
+              "w-full text-left px-3 py-3.5 border-b transition-colors border-l-2",
+              activeBidang === "semua"
+                ? "bg-primary/10 border-l-primary"
+                : "hover:bg-muted/50 border-l-transparent"
+            )}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className={cn(
+                "text-xs font-bold w-5 h-5 rounded flex items-center justify-center shrink-0",
+                activeBidang === "semua" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}>∑</span>
+              <span className={cn("text-xs font-semibold", activeBidang === "semua" ? "text-primary" : "")}>
+                Semua
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground pl-7">{totalKegiatan} kegiatan</p>
+            <p className="text-xs font-medium tabular-nums pl-7 text-primary">{formatRupiah(totalPagu)}</p>
+          </button>
+
+          {/* Per bidang */}
+          {bidangList.map((b) => (
+            <button
+              key={b.kode}
+              onClick={() => setActiveBidang(b.kode)}
+              className={cn(
+                "w-full text-left px-3 py-3.5 border-b transition-colors border-l-2",
+                activeBidang === b.kode
+                  ? "bg-primary/10 border-l-primary"
+                  : "hover:bg-muted/50 border-l-transparent"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className={cn(
+                  "text-xs font-bold w-5 h-5 rounded flex items-center justify-center shrink-0",
+                  activeBidang === b.kode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>{b.kode}</span>
+                <span className={cn(
+                  "text-[11px] font-semibold line-clamp-2 text-left leading-tight",
+                  activeBidang === b.kode ? "text-primary" : "text-foreground"
+                )}>
+                  {b.nama.split(",")[0]}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground pl-7">{b.count} kegiatan</p>
+              {b.pagu > 0 && (
+                <p className="text-xs font-medium tabular-nums pl-7 text-primary">{formatRupiah(b.pagu)}</p>
+              )}
+            </button>
           ))}
         </div>
-      )}
 
-      {/* Empty state */}
-      {!loading && items.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
-          <Map className="h-10 w-10 opacity-30" />
-          <div>
-            <p className="font-medium">Belum ada rencana kegiatan</p>
-            <p className="text-xs mt-1">Tambahkan kegiatan untuk TA {tahun}</p>
-          </div>
-          {!isTerkunci && (
-            <Button size="sm" onClick={openTambah}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Tambah Kegiatan
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Grouped list */}
-      {!loading &&
-        Object.entries(grouped).map(([groupKey, groupItems]) => {
-          const [, bidangNama] = groupKey.split("|");
-          const groupTotal = groupItems.reduce((s: number, i: ItemPerencanaan) => s + i.nilaiPagu, 0);
-          return (
-            <div key={groupKey} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  {bidangNama}
-                </p>
-                <p className="text-xs font-medium text-muted-foreground">
-                  {formatRupiah(groupTotal)}
-                </p>
-              </div>
-
-              {groupItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-lg border bg-card p-3 space-y-1.5"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className="text-[10px] font-mono shrink-0">
-                          {item.kegiatan}
-                        </Badge>
-                        {item.status === "terkunci" && (
-                          <Badge variant="secondary" className="text-[10px]">
-                            <Lock className="h-2.5 w-2.5 mr-1" />
-                            Terkunci
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm font-medium mt-1 leading-snug">
-                        {item.kegiatanNama}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {item.subBidangNama}
-                      </p>
-                    </div>
-                    {!isTerkunci && (
-                      <div className="flex gap-1 shrink-0">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          onClick={() => openEdit(item)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive"
-                          onClick={() => setDeleteTarget(item)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1 border-t">
-                    <div className="text-xs text-muted-foreground">
-                      {item.outputKeluaran || <span className="italic">—</span>}
-                    </div>
-                    <p className="text-sm font-semibold text-primary shrink-0 ml-2">
-                      {formatRupiah(item.nilaiPagu)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+        {/* Konten kanan */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {loading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
             </div>
-          );
-        })}
+          )}
+
+          {!loading && filteredItems.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
+              <Map className="h-10 w-10 opacity-30" />
+              <div>
+                <p className="font-medium">
+                  {activeBidang === "semua" ? "Belum ada rencana kegiatan" : "Belum ada kegiatan di bidang ini"}
+                </p>
+                <p className="text-xs mt-1">TA {tahun}</p>
+              </div>
+              {!isTerkunci && (
+                <Button size="sm" onClick={openTambah}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />Tambah Kegiatan
+                </Button>
+              )}
+            </div>
+          )}
+
+          {!loading && Object.entries(grouped).map(([groupKey, groupItems]) => {
+            const [, subNama] = groupKey.split("|");
+            const groupTotal = groupItems.reduce((s: number, i: ItemPerencanaan) => s + i.nilaiPagu, 0);
+            return (
+              <div key={groupKey} className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{subNama}</p>
+                  <p className="text-xs font-medium text-muted-foreground tabular-nums">{formatRupiah(groupTotal)}</p>
+                </div>
+                {groupItems.map((item) => (
+                  <div key={item.id} className="rounded-lg border bg-card p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] font-mono shrink-0">{item.kegiatan}</Badge>
+                          {item.status === "terkunci" && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              <Lock className="h-2.5 w-2.5 mr-1" />Terkunci
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium mt-1 leading-snug">{item.kegiatanNama}</p>
+                      </div>
+                      {!isTerkunci && (
+                        <div className="flex gap-1 shrink-0">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(item)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(item)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <div className="text-xs text-muted-foreground truncate pr-2">
+                        {item.outputKeluaran || <span className="italic">—</span>}
+                      </div>
+                      <p className="text-sm font-semibold text-primary shrink-0">{formatRupiah(item.nilaiPagu)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* ── Dialog Form Tambah/Edit ── */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editTarget ? "Edit Rencana Kegiatan" : "Tambah Rencana Kegiatan"}
-            </DialogTitle>
+            <DialogTitle>{editTarget ? "Edit Rencana Kegiatan" : "Tambah Rencana Kegiatan"}</DialogTitle>
           </DialogHeader>
-
           <div className="space-y-4 py-2">
-            {/* Kegiatan */}
             <div className="space-y-1.5">
               <Label>Kegiatan *</Label>
-              <Select
-                value={form.kegiatan}
-                onValueChange={handleKegiatanChange}
-              >
+              <Select value={form.kegiatan} onValueChange={(v) => setForm((f) => ({ ...f, kegiatan: v }))}>
                 <SelectTrigger className="w-full text-left h-auto min-h-10">
                   <SelectValue placeholder="Pilih kegiatan..." />
                 </SelectTrigger>
@@ -459,23 +456,12 @@ export default function PerencanaanPage() {
                       </div>
                       {bidang.subBidang.map((sub) =>
                         sub.kegiatan.map((keg) => {
-                          const sudahAda =
-                            kegiatanExisting.has(keg.kode) &&
-                            keg.kode !== editTarget?.kegiatan;
+                          const sudahAda = kegiatanExisting.has(keg.kode) && keg.kode !== editTarget?.kegiatan;
                           return (
-                            <SelectItem
-                              key={keg.kode}
-                              value={keg.kode}
-                              disabled={sudahAda}
-                              className="text-xs"
-                            >
-                              <span className="font-mono text-muted-foreground mr-2">
-                                {keg.kode}
-                              </span>
+                            <SelectItem key={keg.kode} value={keg.kode} disabled={sudahAda} className="text-xs">
+                              <span className="font-mono text-muted-foreground mr-2">{keg.kode}</span>
                               {keg.uraian}
-                              {sudahAda && (
-                                <span className="ml-1 text-muted-foreground">(sudah ada)</span>
-                              )}
+                              {sudahAda && <span className="ml-1 text-muted-foreground">(sudah ada)</span>}
                             </SelectItem>
                           );
                         })
@@ -485,63 +471,40 @@ export default function PerencanaanPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Output / Keluaran */}
             <div className="space-y-1.5">
               <Label>Output / Keluaran</Label>
               <Textarea
                 placeholder="Contoh: 12 bulan, 1 paket, 100 KK..."
                 value={form.outputKeluaran}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, outputKeluaran: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, outputKeluaran: e.target.value }))}
                 rows={2}
               />
             </div>
-
-            {/* Waktu Pelaksanaan */}
             <div className="space-y-1.5">
               <Label>Waktu Pelaksanaan (Tahun)</Label>
               <Input
                 type="number"
                 placeholder={tahun}
                 value={form.waktuPelaksanaan}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, waktuPelaksanaan: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, waktuPelaksanaan: e.target.value }))}
               />
             </div>
-
-            {/* Nilai Pagu */}
             <div className="space-y-1.5">
               <Label>Nilai Pagu (Rp) *</Label>
               <Input
                 inputMode="numeric"
                 placeholder="0"
                 value={form.nilaiPagu}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    nilaiPagu: formatCurrencyInput(e.target.value),
-                  }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, nilaiPagu: formatCurrencyInput(e.target.value) }))}
               />
               {form.nilaiPagu && (
-                <p className="text-xs text-muted-foreground">
-                  {formatRupiah(parseCurrency(form.nilaiPagu))}
-                </p>
+                <p className="text-xs text-muted-foreground">{formatRupiah(parseCurrency(form.nilaiPagu))}</p>
               )}
             </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowForm(false)}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={tambah.isPending || update.isPending}
-            >
+            <Button variant="outline" onClick={() => setShowForm(false)}>Batal</Button>
+            <Button onClick={handleSubmit} disabled={tambah.isPending || update.isPending}>
               {tambah.isPending || update.isPending ? "Menyimpan..." : "Simpan"}
             </Button>
           </DialogFooter>
@@ -549,16 +512,13 @@ export default function PerencanaanPage() {
       </Dialog>
 
       {/* ── AlertDialog Hapus ── */}
-      <AlertDialog
-        open={!!deleteTarget}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-      >
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Rencana Kegiatan?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{deleteTarget?.kegiatanNama}</strong> akan dihapus dari
-              daftar perencanaan TA {tahun}. Tindakan ini tidak dapat dibatalkan.
+              <strong>{deleteTarget?.kegiatanNama}</strong> akan dihapus dari daftar perencanaan TA {tahun}.
+              Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -566,18 +526,13 @@ export default function PerencanaanPage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleDelete}
-            >
-              Hapus
-            </AlertDialogAction>
+            >Hapus</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* ── AlertDialog Kunci ── */}
-      <AlertDialog
-        open={showLockConfirm}
-        onOpenChange={(o) => !o && setShowLockConfirm(false)}
-      >
+      <AlertDialog open={showLockConfirm} onOpenChange={(o) => !o && setShowLockConfirm(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -585,17 +540,14 @@ export default function PerencanaanPage() {
               Kunci Perencanaan?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Setelah dikunci, APBDes hanya dapat menginput kegiatan yang ada
-              dalam daftar perencanaan ini, dan nilai APBDes tidak boleh
-              melebihi pagu yang ditetapkan. Anda masih bisa membuka kunci
-              kembali jika diperlukan.
+              Setelah dikunci, APBDes hanya dapat menginput kegiatan yang ada dalam daftar perencanaan ini.
+              Anda masih bisa membuka kunci kembali jika diperlukan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={confirmLock}>
-              <Lock className="h-3.5 w-3.5 mr-1.5" />
-              Kunci Sekarang
+              <Lock className="h-3.5 w-3.5 mr-1.5" />Kunci Sekarang
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

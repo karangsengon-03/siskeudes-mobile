@@ -206,18 +206,19 @@ export interface SPPItem {
 export type JenisRefBKU =
   | "penerimaan_tunai"   // TND/xxx/yyyy — penerimaan tunai dari pihak ketiga
   | "penerimaan_bank"    // BNK/xxx/yyyy — penerimaan masuk rekening bank
-  | "mutasi_kas"         // MUT/xxx/yyyy — penarikan bank ke tunai
+  | "mutasi_kas"         // MUT/xxx/yyyy — penarikan bank ke tunai atau setor tunai ke bank
   | "spp"                // SPP/xxx/yyyy
   | "spj"                // SPJ/xxx/yyyy - baris penanda SPJ (nilai 0)
   | "spj_pajak"          // SPJ/xxx/yyyy - pajak
   | "spj_sisa_panjar"    // SPJ/xxx/yyyy - sisa panjar
   | "spj_titipan_pajak"  // SPJ/xxx/yyyy - titipan pajak (dikembalikan ke saldo, disetor nanti)
-  | "penyetoran_pajak"   // PJKK/xxx/yyyy — setor pajak ke kas negara
+  | "penyetoran_pajak"   // PJKK/xxx/yyyy — setor pajak SPJ ke kas negara
+  | "penyetoran_hutang_pajak" // PJKK/xxx/yyyy — setor hutang pajak saldo awal ke kas negara
   | "saldo_awal";
 
 // ===== MUTASI KAS =====
 
-export type JenisMutasi = "bank_ke_tunai";
+export type JenisMutasi = "bank_ke_tunai" | "tunai_ke_bank";
 
 export interface MutasiKasItem {
   id: string;

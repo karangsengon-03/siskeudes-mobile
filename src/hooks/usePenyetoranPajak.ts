@@ -162,3 +162,74 @@ export function useDeletePenyetoranPajak() {
     },
   });
 }
+// ── Penyetoran Hutang Pajak Saldo Awal ──────────────────────────────────────
+
+interface HutangItem {
+  key: "ppn" | "pph22" | "pph23" | "pajakDaerah";
+  kode: string;
+  label: string;
+  jumlah: number;
+}
+
+interface AddPenyetoranHutangPayload {
+  tanggal: string;
+  jenisPembayaran: string;
+  hutangList: HutangItem[];
+  totalJumlah: number;
+}
+
+export function useAddPenyetoranHutangPajak() {
+  const tahun = useAppStore((s) => s.tahunAnggaran);
+  const uid = useAuthStore((s) => s.user?.uid ?? "");
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: AddPenyetoranHutangPayload) => {
+      const nomorSetor = await generateNomorSetor(tahun);
+
+      // 1. Simpan ke penyetoranPajak dengan flag sumberSaldoAwal
+      await push(ref(database, `siskeudesOnline/tahun/${tahun}/penyetoranPajak`), {
+        tanggal: payload.tanggal,
+        nomorSetor,
+        kodePajak: "HUTANG_AWAL",
+        namaPajak: payload.hutangList.map((h) => h.label).join(", "),
+        jumlah: payload.totalJumlah,
+        jenisPembayaran: payload.jenisPembayaran,
+        uraian: `Setor hutang pajak saldo awal: ${payload.hutangList.map((h) => h.label).join(", ")}`,
+        bukuPembantuPajakIds: [],
+        sumberSaldoAwal: true,
+        inputOleh: uid,
+        createdAt: Date.now(),
+      });
+
+      // 2. BKU: pengeluaran per jenis hutang pajak
+      for (let i = 0; i < payload.hutangList.length; i++) {
+        const h = payload.hutangList[i];
+        await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
+          tanggal: payload.tanggal,
+          uraian: `Setor hutang pajak ${h.label} — ${nomorSetor}`,
+          penerimaan: 0,
+          pengeluaran: h.jumlah,
+          jenisRef: "penyetoran_hutang_pajak",
+          nomorRef: nomorSetor,
+          jenisPembayaran: payload.jenisPembayaran,
+          inputOleh: uid,
+          createdAt: Date.now() + 1 + i,
+        });
+      }
+
+      // 3. Update saldo awal — set hutang pajak yang disetor menjadi 0
+      const saldoAwalPath = `siskeudesOnline/tahun/${tahun}/pembukuan/saldoAwal`;
+      const multiPath: Record<string, number> = {};
+      for (const h of payload.hutangList) {
+        multiPath[`${saldoAwalPath}/hutangPajak/${h.key}`] = 0;
+      }
+      await update(ref(database, "/"), multiPath);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["penyetoranPajak", tahun] });
+      qc.invalidateQueries({ queryKey: ["bku", tahun], exact: false });
+      qc.invalidateQueries({ queryKey: ["saldoAwal", tahun] });
+    },
+  });
+}

@@ -38,8 +38,9 @@ const JENIS_REF_CONFIG: { [key in JenisRefBKU]: RefConfig } = {
   spj_pajak:         { label: "Pajak",          variant: "destructive" },
   spj_sisa_panjar:   { label: "Sisa Panjar",    variant: "outline" },
   spj_titipan_pajak: { label: "Titipan Pajak",  variant: "outline" },
-  penyetoran_pajak:  { label: "Setor Pajak",    variant: "destructive" },
-  saldo_awal:        { label: "Saldo Awal",     variant: "outline" },
+  penyetoran_pajak:        { label: "Setor Pajak",         variant: "destructive" },
+  penyetoran_hutang_pajak: { label: "Setor Hutang Pajak",  variant: "destructive" },
+  saldo_awal:              { label: "Saldo Awal",           variant: "outline" },
 };
 
 type MediaFilter = "semua" | "tunai" | "bank";
@@ -56,17 +57,19 @@ export function BKUView() {
       return (
         item.jenisRef === "penerimaan_tunai" ||
         item.jenisRef === "spj_sisa_panjar" ||
-        (item.jenisRef === "mutasi_kas" && item.penerimaan > 0) ||
+        (item.jenisRef === "mutasi_kas" && (item as any).jenisPembayaran === "tunai") ||
         (item.jenisRef === "spp" && (item as any).mediaPembayaran === "tunai") ||
-        (item.jenisRef === "penyetoran_pajak" && (item as any).jenisPembayaran === "tunai")
+        (item.jenisRef === "penyetoran_pajak" && (item as any).jenisPembayaran === "tunai") ||
+        (item.jenisRef === "penyetoran_hutang_pajak" && (item as any).jenisPembayaran === "tunai")
       );
     }
     // bank
     return (
       item.jenisRef === "penerimaan_bank" ||
-      (item.jenisRef === "mutasi_kas" && item.pengeluaran > 0) ||
+      (item.jenisRef === "mutasi_kas" && (item as any).jenisPembayaran === "bank") ||
       (item.jenisRef === "spp" && (item as any).mediaPembayaran !== "tunai") ||
       (item.jenisRef === "penyetoran_pajak" && (item as any).jenisPembayaran !== "tunai") ||
+      (item.jenisRef === "penyetoran_hutang_pajak" && (item as any).jenisPembayaran !== "tunai") ||
       item.jenisRef === "spj" ||
       item.jenisRef === "spj_pajak"
     );

@@ -55,31 +55,61 @@ export function useAddMutasiKas() {
         createdAt: Date.now(),
       });
 
-      // BKU: keluar dari bank
-      await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
-        tanggal: payload.tanggal,
-        uraian: `Mutasi Kas — ${payload.uraian}`,
-        penerimaan: 0,
-        pengeluaran: payload.jumlah,
-        jenisRef: "mutasi_kas",
-        nomorRef: nomorMutasi,
-        mutasiKasId: newRef.key,
-        inputOleh: uid,
-        createdAt: Date.now() + 1,
-      });
-
-      // BKU: masuk ke tunai
-      await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
-        tanggal: payload.tanggal,
-        uraian: `Terima Tunai — ${payload.uraian}`,
-        penerimaan: payload.jumlah,
-        pengeluaran: 0,
-        jenisRef: "mutasi_kas",
-        nomorRef: nomorMutasi,
-        mutasiKasId: newRef.key,
-        inputOleh: uid,
-        createdAt: Date.now() + 2,
-      });
+      if (payload.jenis === "bank_ke_tunai") {
+        // Keluar dari bank
+        await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
+          tanggal: payload.tanggal,
+          uraian: `Mutasi Kas Bank → Tunai — ${payload.uraian}`,
+          penerimaan: 0,
+          pengeluaran: payload.jumlah,
+          jenisRef: "mutasi_kas",
+          nomorRef: nomorMutasi,
+          mutasiKasId: newRef.key,
+          jenisPembayaran: "bank",
+          inputOleh: uid,
+          createdAt: Date.now() + 1,
+        });
+        // Masuk ke tunai
+        await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
+          tanggal: payload.tanggal,
+          uraian: `Terima Tunai dari Bank — ${payload.uraian}`,
+          penerimaan: payload.jumlah,
+          pengeluaran: 0,
+          jenisRef: "mutasi_kas",
+          nomorRef: nomorMutasi,
+          mutasiKasId: newRef.key,
+          jenisPembayaran: "tunai",
+          inputOleh: uid,
+          createdAt: Date.now() + 2,
+        });
+      } else {
+        // tunai_ke_bank: keluar dari tunai
+        await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
+          tanggal: payload.tanggal,
+          uraian: `Setor Tunai ke Bank — ${payload.uraian}`,
+          penerimaan: 0,
+          pengeluaran: payload.jumlah,
+          jenisRef: "mutasi_kas",
+          nomorRef: nomorMutasi,
+          mutasiKasId: newRef.key,
+          jenisPembayaran: "tunai",
+          inputOleh: uid,
+          createdAt: Date.now() + 1,
+        });
+        // Masuk ke bank
+        await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
+          tanggal: payload.tanggal,
+          uraian: `Terima dari Kas Tunai — ${payload.uraian}`,
+          penerimaan: payload.jumlah,
+          pengeluaran: 0,
+          jenisRef: "mutasi_kas",
+          nomorRef: nomorMutasi,
+          mutasiKasId: newRef.key,
+          jenisPembayaran: "bank",
+          inputOleh: uid,
+          createdAt: Date.now() + 2,
+        });
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mutasiKas", tahun] });

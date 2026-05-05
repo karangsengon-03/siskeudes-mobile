@@ -62,13 +62,16 @@ export function useSaldoBank() {
     if (b.jenisRef === "penerimaan_bank") {
       saldo += b.penerimaan;
     }
-    // Masuk bank: sisa panjar yang dikembalikan via bank (opsional, skip jika tidak ada)
-
-    // Keluar bank: mutasi kas (penarikan bank ke tunai)
+    // Mutasi kas: cek jenisPembayaran untuk arah yang benar
     if (b.jenisRef === "mutasi_kas") {
-      saldo -= b.pengeluaran;
+      const jp = (b as any).jenisPembayaran ?? "bank";
+      if (jp === "bank") {
+        // bank_ke_tunai: keluar dari bank (pengeluaran), atau tunai_ke_bank: masuk ke bank (penerimaan)
+        saldo -= b.pengeluaran;
+        saldo += b.penerimaan;
+      }
     }
-    // Keluar bank: SPP yang mediaPembayaran-nya "bank" (atau tidak ada field → default bank)
+    // Keluar bank: SPP yang mediaPembayaran-nya "bank"
     if (b.jenisRef === "spp") {
       const media = (b as any).mediaPembayaran ?? "bank";
       if (media === "bank") {
@@ -89,6 +92,13 @@ export function useSaldoBank() {
         saldo -= b.pengeluaran;
       }
     }
+    // Keluar bank: penyetoran hutang pajak saldo awal via bank
+    if (b.jenisRef === "penyetoran_hutang_pajak") {
+      const media = (b as any).jenisPembayaran ?? "tunai";
+      if (media === "bank") {
+        saldo -= b.pengeluaran;
+      }
+    }
   }
   return saldo;
 }
@@ -101,9 +111,14 @@ export function useSaldoTunai() {
     if (b.jenisRef === "penerimaan_tunai") {
       saldo += b.penerimaan;
     }
-    // Masuk tunai: hasil penarikan bank ke tunai (mutasi kas)
-    if (b.jenisRef === "mutasi_kas" && b.penerimaan > 0) {
-      saldo += b.penerimaan;
+    // Mutasi kas: cek jenisPembayaran untuk arah yang benar
+    if (b.jenisRef === "mutasi_kas") {
+      const jp = (b as any).jenisPembayaran ?? "bank";
+      if (jp === "tunai") {
+        // bank_ke_tunai: masuk ke tunai (penerimaan), atau tunai_ke_bank: keluar dari tunai (pengeluaran)
+        saldo += b.penerimaan;
+        saldo -= b.pengeluaran;
+      }
     }
     // Masuk tunai: sisa panjar dikembalikan ke kas tunai
     if (b.jenisRef === "spj_sisa_panjar") {
@@ -116,7 +131,7 @@ export function useSaldoTunai() {
         saldo -= b.pengeluaran;
       }
     }
-    // Titipan pajak dari SPJ (pajak sudah termasuk dalam SPP dicairkan)
+    // Titipan pajak dari SPJ via tunai
     if (b.jenisRef === "spj_titipan_pajak") {
       const media = (b as any).mediaPembayaran ?? "bank";
       if (media === "tunai") {
@@ -126,6 +141,13 @@ export function useSaldoTunai() {
     // Keluar tunai: penyetoran pajak via tunai
     if (b.jenisRef === "penyetoran_pajak") {
       const media = (b as any).jenisPembayaran ?? "bank";
+      if (media === "tunai") {
+        saldo -= b.pengeluaran;
+      }
+    }
+    // Keluar tunai: penyetoran hutang pajak saldo awal via tunai
+    if (b.jenisRef === "penyetoran_hutang_pajak") {
+      const media = (b as any).jenisPembayaran ?? "tunai";
       if (media === "tunai") {
         saldo -= b.pengeluaran;
       }

@@ -19,6 +19,10 @@ import { id as localeId } from "date-fns/locale";
 import { ArrowRightLeft, Banknote, Loader2, Pencil, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
+function parseCurrency(val: string): number {
+  return Number(val.replace(/\./g, "").replace(/,/g, "")) || 0;
+}
+
 export function MutasiKasList() {
   const { data: list = [], isLoading } = useMutasiKas();
   const { data: sppList = [] } = useSPP();
@@ -54,10 +58,19 @@ export function MutasiKasList() {
 
   async function handleSimpanEdit() {
     if (!targetEdit) return;
-    await hapus.mutateAsync(targetEdit.id);
-    await tambah.mutateAsync({ tanggal: editTanggal, jenis: "bank_ke_tunai", uraian: editUraian, jumlah: parseFloat(editJumlah) });
-    toast.success("Mutasi kas diperbarui");
-    setTargetEdit(null);
+    try {
+      await hapus.mutateAsync(targetEdit.id);
+      await tambah.mutateAsync({
+        tanggal: editTanggal,
+        jenis: targetEdit.jenis,
+        uraian: editUraian,
+        jumlah: parseCurrency(editJumlah),
+      });
+      toast.success("Mutasi kas diperbarui");
+      setTargetEdit(null);
+    } catch {
+      toast.error("Gagal memperbarui mutasi kas");
+    }
   }
 
   if (isLoading) return <div className="flex items-center justify-center h-32 text-muted-foreground"><Loader2 className="animate-spin mr-2 h-4 w-4" /> Memuat...</div>;
@@ -97,7 +110,9 @@ export function MutasiKasList() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-mono text-muted-foreground">{m.nomorMutasi}</span>
                     <div className="flex items-center gap-1">
-                      <Badge variant="outline" className="text-xs">Bank → Tunai</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {m.jenis === "tunai_ke_bank" ? "Tunai → Bank" : "Bank → Tunai"}
+                      </Badge>
                       <>
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleAksi(m, "edit")}>
                           <Pencil className="h-3 w-3" />

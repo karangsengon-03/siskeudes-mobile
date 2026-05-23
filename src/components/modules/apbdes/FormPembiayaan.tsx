@@ -15,12 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,11 +36,11 @@ import type { PembiayaanItem, SumberDana, APBDesVariant } from "@/lib/types";
 import { formatRupiah } from "@/lib/utils";
 
 const REKENING_PEMBIAYAAN = [
-  { kode: "6.1.01", nama: "SiLPA Tahun Sebelumnya", jenis: "penerimaan" as const },
-  { kode: "6.1.02", nama: "Pencairan Dana Cadangan", jenis: "penerimaan" as const },
-  { kode: "6.1.03", nama: "Hasil Penjualan Kekayaan Desa yang Dipisahkan", jenis: "penerimaan" as const },
-  { kode: "6.2.01", nama: "Pembentukan Dana Cadangan", jenis: "pengeluaran" as const },
-  { kode: "6.2.02", nama: "Penyertaan Modal Desa", jenis: "pengeluaran" as const },
+  { kode: "6.1.01", nama: "SiLPA Tahun Sebelumnya",                         jenis: "penerimaan" as const },
+  { kode: "6.1.02", nama: "Pencairan Dana Cadangan",                         jenis: "penerimaan" as const },
+  { kode: "6.1.03", nama: "Hasil Penjualan Kekayaan Desa yang Dipisahkan",  jenis: "penerimaan" as const },
+  { kode: "6.2.01", nama: "Pembentukan Dana Cadangan",                       jenis: "pengeluaran" as const },
+  { kode: "6.2.02", nama: "Penyertaan Modal Desa",                           jenis: "pengeluaran" as const },
 ];
 
 interface FormValues {
@@ -68,11 +67,11 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
   const saveMutation = useSavePembiayaan(variant);
   const deleteMutation = useDeletePembiayaan(variant);
 
-  const { register, handleSubmit, control, setValue, watch, reset } =
+  const { register, handleSubmit, control, setValue, watch, reset, formState: { errors } } =
     useForm<FormValues>();
 
   const watchedJenis = watch("jenis");
-  const watchedKode = watch("kodeRekening");
+  const watchedKode  = watch("kodeRekening");
 
   const penerimaan = items.filter((i) => i.jenis === "penerimaan");
   const pengeluaran = items.filter((i) => i.jenis === "pengeluaran");
@@ -105,7 +104,9 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
         kodeRekening: data.kodeRekening,
         namaRekening: data.namaRekening,
         anggaran: Number(data.anggaran),
-        ...(data.kodeRekening === "6.1.01" && data.sumberDana ? { sumberDana: data.sumberDana as SumberDana } : {}),
+        ...(data.kodeRekening === "6.1.01" && data.sumberDana
+          ? { sumberDana: data.sumberDana as SumberDana }
+          : {}),
       });
       toast.success(editItem ? "Pembiayaan diperbarui" : "Pembiayaan ditambahkan");
       setOpen(false);
@@ -131,23 +132,29 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
     label: string,
     groupItems: PembiayaanItem[],
     total: number,
-    expanded: boolean,
-    setExpanded: (v: boolean) => void
+    isExpanded: boolean,
+    setIsExpanded: (v: boolean) => void,
+    colorClass: string
   ) {
     return (
       <div className="border-t">
         <div
-          className="flex items-center justify-between px-4 py-2.5 bg-muted/20 cursor-pointer"
-          onClick={() => setExpanded(!expanded)}
+          className="flex items-center justify-between px-4 py-2.5 bg-muted/20 cursor-pointer select-none"
+          onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-2">
-            {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            <span className="text-sm font-medium capitalize">{label}</span>
+            {isExpanded
+              ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+            <span className="text-sm font-medium">{label}</span>
             <Badge variant="secondary">{groupItems.length}</Badge>
           </div>
-          <span className="text-sm font-semibold text-teal-600">{formatRupiah(total)}</span>
+          <span className={`text-sm font-semibold tabular-nums ${colorClass}`}>
+            {formatRupiah(total)}
+          </span>
         </div>
-        {expanded && (
+
+        {isExpanded && (
           <div className="divide-y">
             {groupItems.length === 0 && (
               <p className="text-center text-muted-foreground text-sm py-4">Belum ada data</p>
@@ -155,19 +162,23 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
             {groupItems.map((item) => (
               <div key={item.id} className="flex items-center justify-between pl-8 pr-4 py-2.5 gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground">{item.kodeRekening}</p>
-                  <p className="text-sm font-medium truncate">{item.namaRekening}</p>
-                  {item.sumberDana && (
-                    <Badge variant="outline" className="text-xs">{item.sumberDana}</Badge>
-                  )}
-                  <span className="text-sm text-teal-600 font-medium">{formatRupiah(item.anggaran)}</span>
+                  <p className="text-xs text-muted-foreground font-mono">{item.kodeRekening}</p>
+                  <p className="text-sm font-medium leading-snug">{item.namaRekening}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {item.sumberDana && (
+                      <Badge variant="outline" className="text-xs">{item.sumberDana}</Badge>
+                    )}
+                    <span className={`text-sm font-semibold tabular-nums ${colorClass}`}>
+                      {formatRupiah(item.anggaran)}
+                    </span>
+                  </div>
                 </div>
                 {!readOnly && (
                   <div className="flex gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(item)}>
+                    <Button size="icon" variant="ghost" aria-label="Ubah pembiayaan" className="h-9 w-9" onClick={() => openEdit(item)}>
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(item.id)}>
+                    <Button size="icon" variant="ghost" aria-label="Hapus pembiayaan" className="h-9 w-9 text-destructive" onClick={() => setDeleteId(item.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -188,13 +199,13 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
           <span className="font-semibold text-sm">6. PEMBIAYAAN</span>
           <Badge variant="secondary">{items.length} pos</Badge>
         </div>
-        <span className="text-sm font-semibold text-teal-600">
+        <span className="text-sm font-semibold text-primary tabular-nums">
           {formatRupiah(totalPenerimaan - totalPengeluaran)}
         </span>
       </div>
 
-      {renderGroup("Penerimaan Pembiayaan", penerimaan, totalPenerimaan, expandedPenerimaan, setExpandedPenerimaan)}
-      {renderGroup("Pengeluaran Pembiayaan", pengeluaran, totalPengeluaran, expandedPengeluaran, setExpandedPengeluaran)}
+      {renderGroup("Penerimaan Pembiayaan", penerimaan, totalPenerimaan, expandedPenerimaan, setExpandedPenerimaan, "text-primary")}
+      {renderGroup("Pengeluaran Pembiayaan", pengeluaran, totalPengeluaran, expandedPengeluaran, setExpandedPengeluaran, "text-rose-500")}
 
       {!readOnly && (
         <div className="border-t px-4 py-3">
@@ -204,110 +215,151 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
         </div>
       )}
 
-      {/* Dialog Form */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editItem ? "Edit Pembiayaan" : "Tambah Pembiayaan"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Jenis</Label>
-              <Controller
-                control={control}
-                name="jenis"
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(v: "penerimaan" | "pengeluaran") => {
-                      field.onChange(v);
-                      setValue("kodeRekening", "");
-                      setValue("namaRekening", "");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih jenis..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="penerimaan">Penerimaan Pembiayaan</SelectItem>
-                      <SelectItem value="pengeluaran">Pengeluaran Pembiayaan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
+      {/* Sheet Form — konsisten dengan semua form lain */}
+      <Sheet open={open} onOpenChange={(v) => { if (!v) setOpen(false); }}>
+        <SheetContent
+          side="bottom"
+          className="h-[92dvh] flex flex-col p-0 overflow-hidden"
+          style={{ maxHeight: "92dvh" }}
+        >
+          <SheetHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
+            <SheetTitle>{editItem ? "Edit Pembiayaan" : "Tambah Pembiayaan"}</SheetTitle>
+          </SheetHeader>
 
-            <div className="space-y-1.5">
-              <Label>Kode Rekening</Label>
-              <Select
-                value={watchedKode}
-                onValueChange={(v) => {
-                  setValue("kodeRekening", v);
-                  const found = REKENING_PEMBIAYAAN.find((r) => r.kode === v);
-                  if (found) setValue("namaRekening", found.nama);
-                }}
-                disabled={!watchedJenis}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih rekening..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {rekeningOptions.map((r) => (
-                    <SelectItem key={r.kode} value={r.kode}>
-                      {r.kode} — {r.nama}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col flex-1 overflow-hidden"
+          >
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
 
-            <div className="space-y-1.5">
-              <Label>Nama Rekening</Label>
-              <Input {...register("namaRekening", { required: true })} placeholder="Nama rekening..." />
-            </div>
-
-            {watchedKode === "6.1.01" && (
+              {/* Jenis */}
               <div className="space-y-1.5">
-                <Label>Sumber Dana SiLPA</Label>
+                <Label>Jenis Pembiayaan</Label>
                 <Controller
                   control={control}
-                  name="sumberDana"
+                  name="jenis"
+                  defaultValue="penerimaan"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(v: "penerimaan" | "pengeluaran") => {
+                        field.onChange(v);
+                        setValue("kodeRekening", "");
+                        setValue("namaRekening", "");
+                      }}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih sumber dana..." />
+                        <SelectValue placeholder="Pilih jenis..." />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DD">Dana Desa (DD)</SelectItem>
-                        <SelectItem value="ADD">Alokasi Dana Desa (ADD)</SelectItem>
-                        <SelectItem value="PAD">PAD</SelectItem>
-                        <SelectItem value="BHPR">BHPR</SelectItem>
-                        <SelectItem value="BKP">BKP</SelectItem>
-                        <SelectItem value="BKK">BKK</SelectItem>
-                        <SelectItem value="LAIN">Lain-lain</SelectItem>
+                      <SelectContent position="popper">
+                        <SelectItem value="penerimaan">Penerimaan Pembiayaan</SelectItem>
+                        <SelectItem value="pengeluaran">Pengeluaran Pembiayaan</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
-                <p className="text-xs text-muted-foreground">Pilih sesuai sumber dana asal SiLPA</p>
               </div>
-            )}
 
-            <div className="space-y-1.5">
-              <Label>Anggaran (Rp)</Label>
-              <Input {...register("anggaran", { required: true, min: 1 })} type="number" min={0} placeholder="0" />
+              {/* Kode Rekening */}
+              <div className="space-y-1.5">
+                <Label>Kode Rekening</Label>
+                <Select
+                  value={watchedKode}
+                  onValueChange={(v) => {
+                    setValue("kodeRekening", v);
+                    const found = REKENING_PEMBIAYAAN.find((r) => r.kode === v);
+                    if (found) setValue("namaRekening", found.nama);
+                  }}
+                  disabled={!watchedJenis}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih rekening..." />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {rekeningOptions.map((r) => (
+                      <SelectItem key={r.kode} value={r.kode} className="text-xs">
+                        {r.kode} — {r.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Nama Rekening */}
+              <div className="space-y-1.5">
+                <Label>Nama Rekening</Label>
+                <Input
+                  {...register("namaRekening", { required: true })}
+                  placeholder="Nama rekening..."
+                />
+                {errors.namaRekening && (
+                  <p className="text-xs text-destructive">Nama rekening wajib diisi</p>
+                )}
+              </div>
+
+              {/* Sumber Dana SiLPA (hanya untuk 6.1.01) */}
+              {watchedKode === "6.1.01" && (
+                <div className="space-y-1.5">
+                  <Label>Sumber Dana SiLPA</Label>
+                  <Controller
+                    control={control}
+                    name="sumberDana"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih sumber dana..." />
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                          <SelectItem value="DD">Dana Desa (DD)</SelectItem>
+                          <SelectItem value="ADD">Alokasi Dana Desa (ADD)</SelectItem>
+                          <SelectItem value="PAD">PAD</SelectItem>
+                          <SelectItem value="BHPR">BHPR</SelectItem>
+                          <SelectItem value="BKP">BKP</SelectItem>
+                          <SelectItem value="BKK">BKK</SelectItem>
+                          <SelectItem value="LAIN">Lain-lain</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <p className="text-xs text-muted-foreground">Pilih sesuai sumber dana asal SiLPA</p>
+                </div>
+              )}
+
+              {/* Anggaran */}
+              <div className="space-y-1.5">
+                <Label>Anggaran (Rp)</Label>
+                <Input
+                  {...register("anggaran", { required: true, min: 1 })}
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  placeholder="0"
+                />
+                {errors.anggaran && (
+                  <p className="text-xs text-destructive">Anggaran wajib diisi</p>
+                )}
+              </div>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>
+            {/* Footer tombol */}
+            <div className="shrink-0 border-t px-4 py-3 flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button type="submit" className="flex-1" disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? "Menyimpan..." : "Simpan"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
+      {/* Confirm Delete */}
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -316,7 +368,12 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground">Hapus</AlertDialogAction>
+            <AlertDialogAction
+              onClick={onDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Hapus
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

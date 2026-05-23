@@ -3,28 +3,27 @@
 
 import { db as database } from "@/lib/firebase";
 import { SPPItem, RincianSPP } from "@/lib/types";
-import { ref, onValue, push, update, get, remove, query, orderByChild, equalTo } from "firebase/database";
+import { ref, onValue, push, update, get, remove } from "firebase/database";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/store/appStore";
 import { useAuthStore } from "@/store/authStore";
+import { generateNomorDokumen } from "@/lib/nomorDokumen";
 
 function rtdbToList<T extends { id: string }>(raw: Record<string, Omit<T, "id">>): T[] {
   return Object.entries(raw).map(([id, v]) => ({ id, ...v } as T));
 }
 
-async function generateNomorSPP(tahun: string): Promise<string> {
-  const r = ref(database, `siskeudesOnline/tahun/${tahun}/spp`);
-  const snap = await get(r);
-  const count = snap.exists() ? Object.keys(snap.val()).length : 0;
-  const urutan = String(count + 1).padStart(3, "0");
-  return `SPP/${urutan}/${tahun}`;
+/** Ambil kodeDesa dari Firebase config — fallback ke "00.0000" jika belum diset */
+async function getKodeDesa(): Promise<string> {
+  const snap = await get(ref(database, "siskeudesOnline/config/desa/kodeDesa"));
+  return snap.exists() ? (snap.val() as string) : "00.0000";
 }
 
 // Cari semua baris BKU yang terkait dengan sppId tertentu
 async function findBKUBySppId(tahun: string, sppId: string): Promise<string[]> {
   const snap = await get(ref(database, `siskeudesOnline/tahun/${tahun}/bku`));
   if (!snap.exists()) return [];
-  const raw = snap.val() as Record<string, any>;
+  const raw = snap.val() as Record<string, { sppId?: string }>;
   return Object.entries(raw)
     .filter(([, v]) => v.sppId === sppId)
     .map(([id]) => id);
@@ -57,7 +56,8 @@ export function useAddSPP() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: AddSPPPayload) => {
-      const nomorSPP = await generateNomorSPP(tahun);
+      const kodeDesa = await getKodeDesa();
+      const nomorSPP = await generateNomorDokumen("SPP", kodeDesa, tahun);
       await push(ref(database, `siskeudesOnline/tahun/${tahun}/spp`), {
         ...payload,
         nomorSPP,
@@ -185,7 +185,7 @@ export function useRealisasiRekening(kegiatanId: string, kodeRekening: string): 
   const { data: sppList = [] } = useSPP();
   return sppList
     .filter((s) => s.kegiatanId === kegiatanId && s.status !== "draft")
-    .flatMap((s) => Object.values(s.rincianSPP))
+    .flatMap((s) => Object.values(s.rincianSPP) as RincianSPP[])
     .filter((r) => r.kodeRekening === kodeRekening)
     .reduce((sum, r) => sum + r.jumlah, 0);
 }

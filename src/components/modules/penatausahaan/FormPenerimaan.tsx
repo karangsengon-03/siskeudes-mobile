@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAddPenerimaan } from "@/hooks/usePenerimaan";
 import { formatRupiah } from "@/lib/utils";
@@ -61,13 +61,13 @@ export function FormPenerimaan({ open, onClose }: FormPenerimaanProps) {
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
-        <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Tambah Penerimaan</DialogTitle>
-          </DialogHeader>
+      <Sheet open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
+        <SheetContent side="bottom" className="h-[92dvh] flex flex-col p-0 overflow-hidden" style={{ maxHeight: "92dvh" }}>
+          <SheetHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
+            <SheetTitle>Tambah Penerimaan</SheetTitle>
+          </SheetHeader>
 
-          <div className="space-y-4 pt-2">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             {/* Jenis */}
             <div className="space-y-1">
               <Label className="text-xs">Jenis Penerimaan</Label>
@@ -77,13 +77,13 @@ export function FormPenerimaan({ open, onClose }: FormPenerimaanProps) {
                     key={j}
                     type="button"
                     onClick={() => setJenis(j)}
-                    className={`flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors ${jenis === j ? "border-teal-600 bg-teal-50 dark:bg-teal-950/30" : "border-border hover:bg-muted/50"}`}
+                    className={`flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors ${jenis === j ? "border-primary bg-primary/5 dark:bg-primary/10" : "border-border hover:bg-muted/50"}`}
                   >
                     {j === "tunai"
-                      ? <Wallet className={`h-6 w-6 ${jenis === j ? "text-teal-600" : "text-muted-foreground"}`} />
-                      : <Banknote className={`h-6 w-6 ${jenis === j ? "text-teal-600" : "text-muted-foreground"}`} />
+                      ? <Wallet className={`h-6 w-6 ${jenis === j ? "text-primary" : "text-muted-foreground"}`} />
+                      : <Banknote className={`h-6 w-6 ${jenis === j ? "text-primary" : "text-muted-foreground"}`} />
                     }
-                    <span className={`text-xs font-semibold ${jenis === j ? "text-teal-700 dark:text-teal-400" : ""}`}>
+                    <span className={`text-xs font-semibold ${jenis === j ? "text-primary dark:text-primary" : ""}`}>
                       {j === "tunai" ? "Kas Tunai" : "Bank"}
                     </span>
                   </button>
@@ -118,19 +118,20 @@ export function FormPenerimaan({ open, onClose }: FormPenerimaanProps) {
             <div className="space-y-1">
               <Label className="text-xs">Jumlah (Rp)</Label>
               <Input type="number" min={0} placeholder="0" value={jumlah} onChange={(e) => setJumlah(e.target.value)} />
-              {parseFloat(jumlah) > 0 && <p className="text-xs text-teal-600 font-medium">{formatRupiah(parseFloat(jumlah))}</p>}
+              {parseFloat(jumlah) > 0 && <p className="text-xs text-primary font-medium">{formatRupiah(parseFloat(jumlah))}</p>}
             </div>
 
-            {/* Tombol */}
-            <div className="flex gap-2 pt-1">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onClose(); }}>Batal</Button>
-              <Button type="button" className="flex-1" disabled={!bisaSubmit || addPenerimaan.isPending} onClick={() => setKonfirmOpen(true)}>
-                Simpan
-              </Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Footer tombol */}
+          <div className="shrink-0 border-t px-4 py-3 flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onClose(); }}>Batal</Button>
+            <Button type="button" className="flex-1" disabled={!bisaSubmit || addPenerimaan.isPending} onClick={() => setKonfirmOpen(true)}>
+              Simpan
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <AlertDialog open={konfirmOpen} onOpenChange={setKonfirmOpen}>
         <AlertDialogContent>

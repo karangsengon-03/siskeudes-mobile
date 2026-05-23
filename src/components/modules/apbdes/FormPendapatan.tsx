@@ -36,7 +36,7 @@ import { useSavePendapatan, useDeletePendapatan } from "@/hooks/useAPBDes";
 import type { PendapatanItem, SumberDana, APBDesVariant } from "@/lib/types";
 import { formatRupiah } from "@/lib/utils";
 
-// Daftar kode rekening pendapatan (level 3)
+// Daftar kode rekening pendapatan (level 3) — Permendagri 20/2018
 const REKENING_PENDAPATAN = [
   { kode: "4.1.01", nama: "Pendapatan Asli Desa - Hasil Usaha" },
   { kode: "4.1.02", nama: "Pendapatan Asli Desa - Hasil Aset" },

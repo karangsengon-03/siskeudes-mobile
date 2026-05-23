@@ -58,7 +58,7 @@ export default function FormDesa() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Building2 className="h-4 w-4 text-teal-600" />
+            <Building2 className="h-4 w-4 text-primary" />
             Identitas Desa
           </CardTitle>
           <CardDescription className="text-xs">
@@ -123,7 +123,7 @@ export default function FormDesa() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="h-4 w-4 text-teal-600" />
+            <Users className="h-4 w-4 text-primary" />
             Pejabat Desa
           </CardTitle>
           <CardDescription className="text-xs">
@@ -172,7 +172,7 @@ export default function FormDesa() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <FileText className="h-4 w-4 text-teal-600" />
+            <FileText className="h-4 w-4 text-primary" />
             Peraturan Desa
           </CardTitle>
           <CardDescription className="text-xs">
@@ -213,7 +213,7 @@ export default function FormDesa() {
         <Button
           type="submit"
           disabled={saving || !isDirty}
-          className="bg-teal-600 hover:bg-teal-700 text-white gap-2"
+          className="bg-primary hover:bg-primary/90 text-white gap-2"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {saving ? "Menyimpan..." : "Simpan Data Desa"}

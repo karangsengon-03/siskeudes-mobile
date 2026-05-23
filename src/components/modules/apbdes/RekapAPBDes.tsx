@@ -39,9 +39,9 @@ export function RekapAPBDes({ data }: Props) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Total Pendapatan</p>
-                <p className="text-lg font-bold text-teal-600">{formatRupiah(data.totalPendapatan)}</p>
+                <p className="text-lg font-bold text-primary">{formatRupiah(data.totalPendapatan)}</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-teal-600/20" />
+              <TrendingUp className="w-8 h-8 text-primary/20" />
             </div>
           </CardContent>
         </Card>
@@ -65,26 +65,26 @@ export function RekapAPBDes({ data }: Props) {
                 <p className="text-xs text-muted-foreground">
                   {isBalance ? "Berimbang" : isSurplus ? "Surplus" : "Defisit"}
                 </p>
-                <p className={`text-lg font-bold ${isBalance ? "text-foreground" : isSurplus ? "text-teal-600" : "text-destructive"}`}>
+                <p className={`text-lg font-bold ${isBalance ? "text-foreground" : isSurplus ? "text-primary" : "text-destructive"}`}>
                   {formatRupiah(Math.abs(surplus))}
                 </p>
               </div>
-              {isBalance ? <Minus className="w-8 h-8 text-muted-foreground/20" /> : isSurplus ? <TrendingUp className="w-8 h-8 text-teal-600/20" /> : <TrendingDown className="w-8 h-8 text-destructive/20" />}
+              {isBalance ? <Minus className="w-8 h-8 text-muted-foreground/20" /> : isSurplus ? <TrendingUp className="w-8 h-8 text-primary/20" /> : <TrendingDown className="w-8 h-8 text-destructive/20" />}
             </div>
           </CardContent>
         </Card>
 
-        <Card className={`border-2 ${isSilpaPositif ? "border-teal-600/40" : "border-destructive/40"}`}>
+        <Card className={`border-2 ${isSilpaPositif ? "border-primary/40" : "border-destructive/40"}`}>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">SiLPA Akhir Tahun</p>
-                <p className={`text-lg font-bold ${isSilpaPositif ? "text-teal-600" : "text-destructive"}`}>
+                <p className={`text-lg font-bold ${isSilpaPositif ? "text-primary" : "text-destructive"}`}>
                   {formatRupiah(Math.abs(silpaAkhir))}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">Surplus ± Pembiayaan Netto</p>
               </div>
-              <TrendingUp className={`w-8 h-8 ${isSilpaPositif ? "text-teal-600/20" : "text-destructive/20"}`} />
+              <TrendingUp className={`w-8 h-8 ${isSilpaPositif ? "text-primary/20" : "text-destructive/20"}`} />
             </div>
           </CardContent>
         </Card>
@@ -100,7 +100,7 @@ export function RekapAPBDes({ data }: Props) {
           {/* I. Pendapatan */}
           <div className="flex justify-between items-center py-1">
             <span className="text-sm font-semibold">I. PENDAPATAN</span>
-            <span className="text-sm font-semibold text-teal-600">{formatRupiah(data.totalPendapatan)}</span>
+            <span className="text-sm font-semibold text-primary">{formatRupiah(data.totalPendapatan)}</span>
           </div>
           {data.pendapatan.map((p) => (
             <div key={p.id} className="flex justify-between items-start pl-4 py-0.5">
@@ -123,6 +123,7 @@ export function RekapAPBDes({ data }: Props) {
             (Array.isArray(data.belanja) ? data.belanja : Object.values(data.belanja))
               .reduce((map, k) => {
                 if (!map.has(k.bidangKode)) map.set(k.bidangKode, { nama: k.bidangNama, total: 0 });
+                // reason: map.set() dipanggil di baris sebelumnya sehingga .get() dijamin ada
                 map.get(k.bidangKode)!.total += k.totalPagu;
                 return map;
               }, new Map<string, { nama: string; total: number }>())
@@ -136,7 +137,7 @@ export function RekapAPBDes({ data }: Props) {
           <Separator />
 
           {/* Surplus/Defisit */}
-          <div className={`flex justify-between items-center py-1 font-semibold ${isBalance ? "" : isSurplus ? "text-teal-600" : "text-destructive"}`}>
+          <div className={`flex justify-between items-center py-1 font-semibold ${isBalance ? "" : isSurplus ? "text-primary" : "text-destructive"}`}>
             <span className="text-sm">{isBalance ? "BERIMBANG" : isSurplus ? "SURPLUS" : "DEFISIT"}</span>
             <span className="text-sm">{formatRupiah(Math.abs(surplus))}</span>
           </div>
@@ -160,7 +161,7 @@ export function RekapAPBDes({ data }: Props) {
                     <p className="text-xs truncate">{p.namaRekening}</p>
                     {p.sumberDana && <Badge variant="outline" className="text-xs mt-0.5">{p.sumberDana}</Badge>}
                   </div>
-                  <span className="text-xs ml-2 shrink-0 text-teal-600">{formatRupiah(p.anggaran)}</span>
+                  <span className="text-xs ml-2 shrink-0 text-primary">{formatRupiah(p.anggaran)}</span>
                 </div>
               ))}
             </div>
@@ -184,13 +185,13 @@ export function RekapAPBDes({ data }: Props) {
 
           <div className="flex justify-between items-center py-0.5 pl-4 text-xs text-muted-foreground">
             <span>Pembiayaan Netto</span>
-            <span className={pembiayaanNetto >= 0 ? "text-teal-600" : "text-destructive"}>{formatRupiah(Math.abs(pembiayaanNetto))}</span>
+            <span className={pembiayaanNetto >= 0 ? "text-primary" : "text-destructive"}>{formatRupiah(Math.abs(pembiayaanNetto))}</span>
           </div>
 
           <Separator />
 
           {/* SiLPA Akhir */}
-          <div className={`flex justify-between items-center py-1.5 font-bold text-base ${isSilpaPositif ? "text-teal-600" : "text-destructive"}`}>
+          <div className={`flex justify-between items-center py-1.5 font-bold text-base ${isSilpaPositif ? "text-primary" : "text-destructive"}`}>
             <span>SiLPA AKHIR TAHUN</span>
             <span>{formatRupiah(Math.abs(silpaAkhir))}</span>
           </div>

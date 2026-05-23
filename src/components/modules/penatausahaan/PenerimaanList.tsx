@@ -1,10 +1,11 @@
 // src/components/modules/penatausahaan/PenerimaanList.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ListFilter, filterByBulan } from "@/components/ui/list-filter";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,23 @@ export function PenerimaanList() {
   const [targetHapus, setTargetHapus] = useState<PenerimaanItem | null>(null);
   const [targetEdit, setTargetEdit] = useState<PenerimaanItem | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [filterBulan, setFilterBulan] = useState("0");
+  const [filterSearch, setFilterSearch] = useState("");
+
+  const filteredList = useMemo(() => {
+    let l = filterByBulan(list, filterBulan);
+    if (filterSearch.trim()) {
+      const q = filterSearch.toLowerCase();
+      l = l.filter(
+        (p) =>
+          p.nomorBukti.toLowerCase().includes(q) ||
+          p.uraian.toLowerCase().includes(q) ||
+          p.sumberDana.toLowerCase().includes(q)
+      );
+    }
+    return l;
+  }, [list, filterBulan, filterSearch]);
 
   // Edit form state
   const [editJenis, setEditJenis] = useState<JenisPenerimaan>("tunai");
@@ -81,17 +99,17 @@ export function PenerimaanList() {
     <>
       <div className="grid grid-cols-2 gap-2 px-4 py-3 border-b shrink-0">
         <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
-          <Wallet className="h-4 w-4 text-teal-600 shrink-0" />
+          <Wallet className="h-4 w-4 text-primary shrink-0" />
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Kas Tunai</p>
-            <p className="text-xs font-semibold text-teal-600 truncate">{formatRupiah(totalTunai)}</p>
+            <p className="text-xs font-semibold text-primary truncate">{formatRupiah(totalTunai)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
-          <Banknote className="h-4 w-4 text-teal-600 shrink-0" />
+          <Banknote className="h-4 w-4 text-primary shrink-0" />
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Bank</p>
-            <p className="text-xs font-semibold text-teal-600 truncate">{formatRupiah(totalBank)}</p>
+            <p className="text-xs font-semibold text-primary truncate">{formatRupiah(totalBank)}</p>
           </div>
         </div>
       </div>
@@ -102,12 +120,25 @@ export function PenerimaanList() {
           <span>Belum ada penerimaan</span>
         </div>
       ) : (
-        <ScrollArea className="flex-1">
-          <div className="divide-y">
-            {list.map((p) => (
+        <>
+          <ListFilter
+            bulan={filterBulan}
+            onBulanChange={setFilterBulan}
+            search={filterSearch}
+            onSearchChange={setFilterSearch}
+            searchPlaceholder="Cari nomor bukti, uraian, sumber..."
+          />
+          <ScrollArea className="flex-1">
+            <div className="divide-y">
+              {filteredList.length === 0 && (
+                <div className="flex items-center justify-center h-24 text-muted-foreground text-xs">
+                  Tidak ada penerimaan sesuai filter
+                </div>
+              )}
+              {filteredList.map((p) => (
               <div key={p.id} className="px-4 py-3 flex items-start gap-3">
                 <div className="shrink-0 mt-0.5">
-                  {p.jenisPenerimaan === "tunai" ? <Wallet className="h-4 w-4 text-teal-600" /> : <Banknote className="h-4 w-4 text-teal-600" />}
+                  {p.jenisPenerimaan === "tunai" ? <Wallet className="h-4 w-4 text-primary" /> : <Banknote className="h-4 w-4 text-primary" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
@@ -115,10 +146,10 @@ export function PenerimaanList() {
                     <div className="flex items-center gap-1">
                       <Badge variant="outline" className="text-xs">{p.sumberDana}</Badge>
                       <>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleAksi(p, "edit")}>
+                        <Button variant="ghost" size="icon" aria-label="Ubah penerimaan" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => handleAksi(p, "edit")}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleAksi(p, "hapus")}>
+                        <Button variant="ghost" size="icon" aria-label="Hapus penerimaan" className="h-9 w-9 text-destructive hover:text-destructive" onClick={() => handleAksi(p, "hapus")}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </>
@@ -126,12 +157,13 @@ export function PenerimaanList() {
                   </div>
                   <p className="text-xs text-muted-foreground">{format(new Date(p.tanggal), "d MMM yyyy", { locale: localeId })} · {p.jenisPenerimaan === "tunai" ? "Kas Tunai" : "Bank"}</p>
                   <p className="text-sm font-medium truncate">{p.uraian}</p>
-                  <p className="text-sm font-semibold text-teal-600">{formatRupiah(p.jumlah)}</p>
+                  <p className="text-sm font-semibold text-primary">{formatRupiah(p.jumlah)}</p>
                 </div>
               </div>
             ))}
           </div>
         </ScrollArea>
+        </>
       )}
 
       {/* Dialog error urutan */}
@@ -158,7 +190,7 @@ export function PenerimaanList() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { await hapus.mutateAsync(targetHapus!.id); toast.success("Penerimaan dihapus"); setTargetHapus(null); }}>Hapus</AlertDialogAction>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { if (!targetHapus) return; await hapus.mutateAsync(targetHapus.id); toast.success("Penerimaan dihapus"); setTargetHapus(null); }}>Hapus</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -172,7 +204,7 @@ export function PenerimaanList() {
               <Label className="text-xs">Jenis</Label>
               <div className="grid grid-cols-2 gap-2">
                 {(["tunai", "bank"] as JenisPenerimaan[]).map((j) => (
-                  <button key={j} type="button" onClick={() => setEditJenis(j)} className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 transition-colors ${editJenis === j ? "border-teal-600 bg-teal-50 dark:bg-teal-950/30" : "border-border"}`}>
+                  <button key={j} type="button" onClick={() => setEditJenis(j)} className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 transition-colors ${editJenis === j ? "border-primary bg-primary/5 dark:bg-primary/10" : "border-border"}`}>
                     {j === "tunai" ? <Wallet className="h-4 w-4" /> : <Banknote className="h-4 w-4" />}
                     <span className="text-xs font-semibold">{j === "tunai" ? "Kas Tunai" : "Bank"}</span>
                   </button>

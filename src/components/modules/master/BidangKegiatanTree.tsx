@@ -85,7 +85,7 @@ export default function BidangKegiatanTree() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Layers className="h-4 w-4 text-teal-600" />
+              <Layers className="h-4 w-4 text-primary" />
               Bidang &amp; Kegiatan Desa
             </CardTitle>
             <CardDescription className="text-xs mt-1">
@@ -121,7 +121,7 @@ export default function BidangKegiatanTree() {
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="max-height: 540px overflow-y-auto">
+        <div className="max-h-[540px] overflow-y-auto">
           {filteredTree.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               Tidak ditemukan hasil untuk "{search}"

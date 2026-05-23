@@ -1,10 +1,11 @@
 // src/components/modules/penatausahaan/SPPList.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ListFilter, filterByBulan } from "@/components/ui/list-filter";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -59,7 +60,30 @@ export function SPPList() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
 
-  const adaSPJ = spjList.length > 0;
+  // Filter state
+  const [filterBulan, setFilterBulan] = useState("0");
+  const [filterSearch, setFilterSearch] = useState("");
+
+  // ✅ FIX BUG 1: cek SPJ per-SPP (berdasar nomorSPP), bukan global
+  // Fungsi ini mengembalikan true jika SPP tertentu sudah punya SPJ terkait
+  function sppSudahAdaSPJ(spp: SPPItem): boolean {
+    return spjList.some((spj) => spj.nomorSPP === spp.nomorSPP);
+  }
+
+  // Filtered SPP list
+  const filteredSPP = useMemo(() => {
+    let list = filterByBulan(sppList, filterBulan);
+    if (filterSearch.trim()) {
+      const q = filterSearch.toLowerCase();
+      list = list.filter(
+        (s) =>
+          s.nomorSPP.toLowerCase().includes(q) ||
+          s.kegiatanNama.toLowerCase().includes(q) ||
+          s.uraian.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [sppList, filterBulan, filterSearch]);
 
   function handleClickCairkan(spp: SPPItem) {
     const media = spp.mediaPembayaran ?? "bank";
@@ -79,32 +103,36 @@ export function SPPList() {
   }
 
   function handleClickEdit(spp: SPPItem) {
+    // ✅ FIX: cek SPJ hanya untuk SPP ini, bukan seluruh sistem
+    const adaSPJUntukIni = sppSudahAdaSPJ(spp);
     if (spp.status === "dicairkan") {
-      if (adaSPJ) {
-        setErrorMsg("Tidak bisa edit SPP yang sudah dicairkan karena masih ada SPJ. Hapus SPJ terkait terlebih dahulu.");
+      if (adaSPJUntukIni) {
+        setErrorMsg("Tidak bisa edit SPP yang sudah dicairkan karena sudah ada SPJ terkait. Hapus SPJ terkait terlebih dahulu.");
         return;
       }
       setRevertFor({ spp, aksi: "edit" });
       return;
     }
-    if (adaSPJ) {
-      setErrorMsg("Tidak bisa edit SPP karena masih ada SPJ. Hapus SPJ terbawah dulu.");
+    if (adaSPJUntukIni) {
+      setErrorMsg("Tidak bisa edit SPP karena sudah ada SPJ terkait. Hapus SPJ terkait terlebih dahulu.");
       return;
     }
     setTargetEdit(spp);
   }
 
   function handleClickHapus(spp: SPPItem) {
+    // ✅ FIX: cek SPJ hanya untuk SPP ini, bukan seluruh sistem
+    const adaSPJUntukIni = sppSudahAdaSPJ(spp);
     if (spp.status === "dicairkan") {
-      if (adaSPJ) {
-        setErrorMsg("Tidak bisa hapus SPP yang sudah dicairkan karena masih ada SPJ. Hapus SPJ terkait terlebih dahulu.");
+      if (adaSPJUntukIni) {
+        setErrorMsg("Tidak bisa hapus SPP yang sudah dicairkan karena sudah ada SPJ terkait. Hapus SPJ terkait terlebih dahulu.");
         return;
       }
       setRevertFor({ spp, aksi: "hapus" });
       return;
     }
-    if (adaSPJ) {
-      setErrorMsg("Tidak bisa hapus SPP karena masih ada SPJ. Hapus SPJ terbawah dulu.");
+    if (adaSPJUntukIni) {
+      setErrorMsg("Tidak bisa hapus SPP karena sudah ada SPJ terkait. Hapus SPJ terkait terlebih dahulu.");
       return;
     }
     setTargetHapus(spp);
@@ -183,9 +211,21 @@ export function SPPList() {
 
   return (
     <>
+      <ListFilter
+        bulan={filterBulan}
+        onBulanChange={setFilterBulan}
+        search={filterSearch}
+        onSearchChange={setFilterSearch}
+        searchPlaceholder="Cari nomor, kegiatan, uraian..."
+      />
       <ScrollArea className="h-full">
         <div className="divide-y">
-          {sppList.map((spp) => {
+          {filteredSPP.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-24 text-muted-foreground text-xs gap-1">
+              <span>Tidak ada SPP sesuai filter</span>
+            </div>
+          )}
+          {filteredSPP.map((spp) => {
             const isExpanded = expandedId === spp.id;
             const isCetakOpen = cetakMenuId === spp.id;
             const rincianArr = Object.values(spp.rincianSPP);
@@ -229,7 +269,9 @@ export function SPPList() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      aria-label={isExpanded ? "Tutup detail SPP" : "Buka detail SPP"}
+                      aria-expanded={isExpanded}
+                      className="h-9 w-9"
                       onClick={() => setExpandedId(isExpanded ? null : spp.id)}
                     >
                       {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -242,7 +284,7 @@ export function SPPList() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 w-7 p-0"
+                        className="h-9 w-9 p-0"
                         onClick={() => setCetakMenuId(isCetakOpen ? null : spp.id)}
                         disabled={printing}
                         title="Cetak dokumen"
@@ -287,7 +329,7 @@ export function SPPList() {
                                 className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted transition-colors"
                                 onClick={() => handleCetak(spp, "cair")}
                               >
-                                <Receipt className="h-3.5 w-3.5 text-teal-600" />
+                                <Receipt className="h-3.5 w-3.5 text-primary" />
                                 Bukti Pencairan (CAIR)
                               </button>
                               <button
@@ -316,7 +358,7 @@ export function SPPList() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                          className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
                           onClick={() => handleClickEdit(spp)}
                           disabled={uncairkan.isPending}
                         >
@@ -325,7 +367,7 @@ export function SPPList() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          className="h-9 w-9 p-0 text-destructive hover:text-destructive"
                           onClick={() => handleClickHapus(spp)}
                           disabled={hapus.isPending || uncairkan.isPending}
                         >
@@ -337,7 +379,7 @@ export function SPPList() {
                     {spp.status === "dikonfirmasi" && (
                       <Button
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-9 text-xs"
                         onClick={() => handleClickCairkan(spp)}
                         disabled={cairkan.isPending}
                       >

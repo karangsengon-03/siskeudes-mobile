@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAddMutasiKas } from "@/hooks/useMutasiKas";
 import { useSaldoBank, useSaldoTunai } from "@/hooks/useBKU";
@@ -68,13 +68,13 @@ export function FormMutasiKas({ open, onClose }: FormMutasiKasProps) {
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
-        <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Mutasi Kas</DialogTitle>
-          </DialogHeader>
+      <Sheet open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
+        <SheetContent side="bottom" className="h-[92dvh] flex flex-col p-0 overflow-hidden" style={{ maxHeight: "92dvh" }}>
+          <SheetHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
+            <SheetTitle>Mutasi Kas</SheetTitle>
+          </SheetHeader>
 
-          <div className="space-y-4 pt-2">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
 
             {/* Pilihan arah mutasi */}
             <div className="grid grid-cols-2 gap-2">
@@ -117,14 +117,14 @@ export function FormMutasiKas({ open, onClose }: FormMutasiKasProps) {
             {/* Info saldo sumber */}
             <div className="rounded-md border bg-muted/30 px-3 py-2.5 flex items-center gap-2">
               {jenis === "bank_ke_tunai"
-                ? <Banknote className="h-4 w-4 text-teal-600 shrink-0" />
-                : <Wallet className="h-4 w-4 text-teal-600 shrink-0" />
+                ? <Banknote className="h-4 w-4 text-primary shrink-0" />
+                : <Wallet className="h-4 w-4 text-primary shrink-0" />
               }
               <div className="text-xs">
                 <p className="text-muted-foreground">
                   {jenis === "bank_ke_tunai" ? "Saldo Bank Tersedia" : "Saldo Kas Tunai Tersedia"}
                 </p>
-                <p className="font-semibold text-teal-600">{formatRupiah(saldoSumber)}</p>
+                <p className="font-semibold text-primary">{formatRupiah(saldoSumber)}</p>
               </div>
             </div>
 
@@ -166,7 +166,7 @@ export function FormMutasiKas({ open, onClose }: FormMutasiKasProps) {
                 onChange={(e) => setJumlah(formatCurrencyInput(e.target.value))}
               />
               {jumlahNum > 0 && (
-                <p className={`text-xs font-medium ${melebihi ? "text-destructive" : "text-teal-600"}`}>
+                <p className={`text-xs font-medium ${melebihi ? "text-destructive" : "text-primary"}`}>
                   {formatRupiah(jumlahNum)}
                 </p>
               )}
@@ -178,23 +178,24 @@ export function FormMutasiKas({ open, onClose }: FormMutasiKasProps) {
               )}
             </div>
 
-            {/* Tombol */}
-            <div className="flex gap-2 pt-1">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onClose(); }}>
-                Batal
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                disabled={!bisaSubmit || addMutasi.isPending}
-                onClick={() => setKonfirmOpen(true)}
-              >
-                {addMutasi.isPending ? "Memproses..." : "Proses Mutasi"}
-              </Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Footer tombol */}
+          <div className="shrink-0 border-t px-4 py-3 flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onClose(); }}>
+              Batal
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              disabled={!bisaSubmit || addMutasi.isPending}
+              onClick={() => setKonfirmOpen(true)}
+            >
+              {addMutasi.isPending ? "Memproses..." : "Proses Mutasi"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <AlertDialog open={konfirmOpen} onOpenChange={setKonfirmOpen}>
         <AlertDialogContent>

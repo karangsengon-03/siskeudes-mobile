@@ -1,10 +1,11 @@
 // src/components/modules/penatausahaan/MutasiKasList.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ListFilter, filterByBulan } from "@/components/ui/list-filter";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,22 @@ export function MutasiKasList() {
   const [editTanggal, setEditTanggal] = useState("");
   const [editUraian, setEditUraian] = useState("");
   const [editJumlah, setEditJumlah] = useState("");
+
+  const [filterBulan, setFilterBulan] = useState("0");
+  const [filterSearch, setFilterSearch] = useState("");
+
+  const filteredList = useMemo(() => {
+    let l = filterByBulan(list, filterBulan);
+    if (filterSearch.trim()) {
+      const q = filterSearch.toLowerCase();
+      l = l.filter(
+        (m) =>
+          m.nomorMutasi.toLowerCase().includes(q) ||
+          m.uraian.toLowerCase().includes(q)
+      );
+    }
+    return l;
+  }, [list, filterBulan, filterSearch]);
 
   // list sorted ascending by createdAt — terbawah = index terakhir
   const adaSPPDicairkan = sppList.some((s) => s.status === "dicairkan");
@@ -79,17 +96,17 @@ export function MutasiKasList() {
     <>
       <div className="grid grid-cols-2 gap-2 px-4 py-3 border-b shrink-0">
         <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
-          <Banknote className="h-4 w-4 text-teal-600 shrink-0" />
+          <Banknote className="h-4 w-4 text-primary shrink-0" />
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Saldo Bank</p>
-            <p className="text-xs font-semibold text-teal-600 truncate">{formatRupiah(saldoBank)}</p>
+            <p className="text-xs font-semibold text-primary truncate">{formatRupiah(saldoBank)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
-          <Wallet className="h-4 w-4 text-teal-600 shrink-0" />
+          <Wallet className="h-4 w-4 text-primary shrink-0" />
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Saldo Tunai</p>
-            <p className="text-xs font-semibold text-teal-600 truncate">{formatRupiah(saldoTunai)}</p>
+            <p className="text-xs font-semibold text-primary truncate">{formatRupiah(saldoTunai)}</p>
           </div>
         </div>
       </div>
@@ -101,11 +118,24 @@ export function MutasiKasList() {
           <p className="text-xs text-center px-6">Gunakan mutasi untuk menarik uang dari bank ke kas tunai.</p>
         </div>
       ) : (
-        <ScrollArea className="flex-1">
-          <div className="divide-y">
-            {list.map((m) => (
+        <>
+          <ListFilter
+            bulan={filterBulan}
+            onBulanChange={setFilterBulan}
+            search={filterSearch}
+            onSearchChange={setFilterSearch}
+            searchPlaceholder="Cari nomor, uraian..."
+          />
+          <ScrollArea className="flex-1">
+            <div className="divide-y">
+              {filteredList.length === 0 && (
+                <div className="flex items-center justify-center h-24 text-muted-foreground text-xs">
+                  Tidak ada mutasi sesuai filter
+                </div>
+              )}
+              {filteredList.map((m) => (
               <div key={m.id} className="px-4 py-3 flex items-start gap-3">
-                <div className="shrink-0 mt-0.5"><ArrowRightLeft className="h-4 w-4 text-teal-600" /></div>
+                <div className="shrink-0 mt-0.5"><ArrowRightLeft className="h-4 w-4 text-primary" /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-mono text-muted-foreground">{m.nomorMutasi}</span>
@@ -114,10 +144,10 @@ export function MutasiKasList() {
                         {m.jenis === "tunai_ke_bank" ? "Tunai → Bank" : "Bank → Tunai"}
                       </Badge>
                       <>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleAksi(m, "edit")}>
+                        <Button variant="ghost" size="icon" aria-label="Ubah mutasi kas" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => handleAksi(m, "edit")>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleAksi(m, "hapus")}>
+                        <Button variant="ghost" size="icon" aria-label="Hapus mutasi kas" className="h-9 w-9 text-destructive hover:text-destructive" onClick={() => handleAksi(m, "hapus")>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </>
@@ -125,12 +155,13 @@ export function MutasiKasList() {
                   </div>
                   <p className="text-xs text-muted-foreground">{format(new Date(m.tanggal), "d MMM yyyy", { locale: localeId })}</p>
                   <p className="text-sm font-medium truncate">{m.uraian}</p>
-                  <p className="text-sm font-semibold text-teal-600">{formatRupiah(m.jumlah)}</p>
+                  <p className="text-sm font-semibold text-primary">{formatRupiah(m.jumlah)}</p>
                 </div>
               </div>
             ))}
           </div>
         </ScrollArea>
+        </>
       )}
 
       <AlertDialog open={!!errorMsg} onOpenChange={(v) => !v && setErrorMsg(null)}>
@@ -145,7 +176,7 @@ export function MutasiKasList() {
           <AlertDialogHeader><AlertDialogTitle>Hapus mutasi kas ini?</AlertDialogTitle><AlertDialogDescription><strong>{targetHapus?.nomorMutasi}</strong> — {targetHapus?.uraian} senilai <strong>{formatRupiah(targetHapus?.jumlah ?? 0)}</strong> akan dihapus beserta entri BKU terkait.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { await hapus.mutateAsync(targetHapus!.id); toast.success("Mutasi kas dihapus"); setTargetHapus(null); }}>Hapus</AlertDialogAction>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { if (!targetHapus) return; await hapus.mutateAsync(targetHapus.id); toast.success("Mutasi kas dihapus"); setTargetHapus(null); }}>Hapus</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

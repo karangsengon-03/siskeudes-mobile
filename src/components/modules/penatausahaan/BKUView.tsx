@@ -57,19 +57,19 @@ export function BKUView() {
       return (
         item.jenisRef === "penerimaan_tunai" ||
         item.jenisRef === "spj_sisa_panjar" ||
-        (item.jenisRef === "mutasi_kas" && (item as any).jenisPembayaran === "tunai") ||
-        (item.jenisRef === "spp" && (item as any).mediaPembayaran === "tunai") ||
-        (item.jenisRef === "penyetoran_pajak" && (item as any).jenisPembayaran === "tunai") ||
-        (item.jenisRef === "penyetoran_hutang_pajak" && (item as any).jenisPembayaran === "tunai")
+        (item.jenisRef === "mutasi_kas" && item.jenisPembayaran === "tunai") ||
+        (item.jenisRef === "spp" && item.mediaPembayaran === "tunai") ||
+        (item.jenisRef === "penyetoran_pajak" && item.jenisPembayaran === "tunai") ||
+        (item.jenisRef === "penyetoran_hutang_pajak" && item.jenisPembayaran === "tunai")
       );
     }
     // bank
     return (
       item.jenisRef === "penerimaan_bank" ||
-      (item.jenisRef === "mutasi_kas" && (item as any).jenisPembayaran === "bank") ||
-      (item.jenisRef === "spp" && (item as any).mediaPembayaran !== "tunai") ||
-      (item.jenisRef === "penyetoran_pajak" && (item as any).jenisPembayaran !== "tunai") ||
-      (item.jenisRef === "penyetoran_hutang_pajak" && (item as any).jenisPembayaran !== "tunai") ||
+      (item.jenisRef === "mutasi_kas" && item.jenisPembayaran === "bank") ||
+      (item.jenisRef === "spp" && item.mediaPembayaran !== "tunai") ||
+      (item.jenisRef === "penyetoran_pajak" && item.jenisPembayaran !== "tunai") ||
+      (item.jenisRef === "penyetoran_hutang_pajak" && item.jenisPembayaran !== "tunai") ||
       item.jenisRef === "spj" ||
       item.jenisRef === "spj_pajak"
     );
@@ -104,9 +104,9 @@ export function BKUView() {
         </div>
         <div className="text-center col-span-1">
           <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-0.5">
-            <Banknote className="h-3 w-3 text-teal-600" /> Saldo Bank
+            <Banknote className="h-3 w-3 text-primary" /> Saldo Bank
           </div>
-          <p className="text-xs font-semibold text-teal-600 truncate">{formatRupiah(saldoBank)}</p>
+          <p className="text-xs font-semibold text-primary truncate">{formatRupiah(saldoBank)}</p>
         </div>
         <div className="text-center col-span-1">
           <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-0.5">
@@ -179,7 +179,7 @@ export function BKUView() {
                   key={item.id}
                   className={`flex gap-2 px-4 py-2.5 items-start hover:bg-muted/20 transition-colors ${
                     item.jenisRef === "spj"
-                      ? "bg-teal-50/50 dark:bg-teal-950/20 border-l-2 border-l-teal-500"
+                      ? "bg-primary/5/50 dark:bg-primary/10 border-l-2 border-l-primary/70"
                       : ""
                   }`}
                 >
@@ -205,7 +205,7 @@ export function BKUView() {
                       {/* Badge Bank/Tunai khusus untuk baris SPP */}
                       {item.jenisRef === "spp" && (
                         <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-0.5">
-                          {(item as any).mediaPembayaran === "tunai"
+                          {item.mediaPembayaran === "tunai"
                             ? <><Wallet className="h-2.5 w-2.5" /> Tunai</>
                             : <><Banknote className="h-2.5 w-2.5" /> Bank</>
                           }

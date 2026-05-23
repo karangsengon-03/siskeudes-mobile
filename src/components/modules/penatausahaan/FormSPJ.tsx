@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useSPP } from "@/hooks/useSPP";
 import { useAddSPJ, useEditSPJ } from "@/hooks/useSPJ";
@@ -81,8 +80,8 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
   }, [open, editItem]);
 
   const sppOptions = editItem
-    ? sppList.filter((s) => s.id === editItem.sppId || (s.status === "dicairkan" && !(s as any).sudahSPJ))
-    : sppList.filter((s) => s.status === "dicairkan" && !(s as any).sudahSPJ);
+    ? sppList.filter((s) => s.id === editItem.sppId || (s.status === "dicairkan" && !s.nomorSPJ))
+    : sppList.filter((s) => s.status === "dicairkan" && !s.nomorSPJ);
 
   const sppAktif: SPPItem | undefined = sppList.find((s) => s.id === sppId);
   const realisasi = parseFloat(nilaiRealisasi) || 0;
@@ -182,12 +181,12 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
-        <DialogContent className="w-full max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="px-4 py-3 border-b shrink-0">
-            <DialogTitle>{editItem ? "Edit SPJ" : "Buat SPJ"}</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
+      <Sheet open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
+        <SheetContent side="bottom" className="h-[92dvh] flex flex-col p-0 overflow-hidden" style={{ maxHeight: "92dvh" }}>
+          <SheetHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
+            <SheetTitle>{editItem ? "Edit SPJ" : "Buat SPJ"}</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto overscroll-contain">
             <div className="p-4 space-y-4">
 
               <div className="space-y-1">
@@ -233,7 +232,7 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
                   </div>
                   <div className="flex justify-between font-semibold">
                     <span>Nilai SPP</span>
-                    <span className="text-teal-600">{formatRupiah(nilaiSPP)}</span>
+                    <span className="text-primary">{formatRupiah(nilaiSPP)}</span>
                   </div>
                 </div>
               )}
@@ -264,7 +263,7 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
                         <span className="text-muted-foreground">Realisasi</span>
                         <span>{formatRupiah(realisasi)}</span>
                       </div>
-                      <div className={`flex justify-between font-semibold border-t pt-1 ${sisaPanjar > 0 ? "text-amber-600" : "text-teal-600"}`}>
+                      <div className={`flex justify-between font-semibold border-t pt-1 ${sisaPanjar > 0 ? "text-amber-600" : "text-primary"}`}>
                         <span>Sisa Panjar</span>
                         <span>{formatRupiah(sisaPanjar)}</span>
                       </div>
@@ -313,6 +312,7 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
                           </Select>
                         </div>
                         <Button type="button" variant="ghost" size="icon"
+                          aria-label="Hapus item pajak"
                           className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
                           onClick={() => hapusPajak(p.id)}
                         >
@@ -337,7 +337,7 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
                                   onClick={() => ubahDPPMode(p.id, mode)}
                                   className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors ${
                                     p.dppMode === mode
-                                      ? "bg-teal-600 text-white border-teal-600"
+                                      ? "bg-primary text-white border-primary"
                                       : "border-border text-muted-foreground hover:bg-muted"
                                   }`}
                                 >
@@ -391,21 +391,23 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onClose(); }}>
-                  Batal
-                </Button>
-                <Button type="button" className="flex-1"
-                  disabled={!bisaSubmit || addSPJ.isPending || useEditSPJInstance.isPending}
-                  onClick={() => setKonfirmOpen(true)}
-                >
-                  {editItem ? "Simpan Perubahan" : "Sahkan SPJ"}
-                </Button>
-              </div>
             </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+          </div>
+
+          {/* Footer tombol */}
+          <div className="shrink-0 border-t px-4 py-3 flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onClose(); }}>
+              Batal
+            </Button>
+            <Button type="button" className="flex-1"
+              disabled={!bisaSubmit || addSPJ.isPending || useEditSPJInstance.isPending}
+              onClick={() => setKonfirmOpen(true)}
+            >
+              {editItem ? "Simpan Perubahan" : "Sahkan SPJ"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <AlertDialog open={konfirmOpen} onOpenChange={setKonfirmOpen}>
         <AlertDialogContent>

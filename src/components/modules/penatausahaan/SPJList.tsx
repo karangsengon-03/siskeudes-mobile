@@ -1,10 +1,11 @@
 // src/components/modules/penatausahaan/SPJList.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ListFilter, filterByBulan } from "@/components/ui/list-filter";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -13,6 +14,7 @@ import { useSPJ, useDeleteSPJ, useEditSPJ } from "@/hooks/useSPJ";
 import { useSPP } from "@/hooks/useSPP";
 import { FormSPJ } from "./FormSPJ";
 import { usePenyetoranPajak } from "@/hooks/usePenyetoranPajak";
+import { useBukuPembantuPajak } from "@/hooks/useBukuPembantu";
 import { useDataDesa } from "@/hooks/useMaster";
 import { formatRupiah } from "@/lib/utils";
 import { SPJItem } from "@/lib/types";
@@ -41,18 +43,55 @@ export function SPJList() {
   const [cetakMenuId, setCetakMenuId] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
 
+  const [filterBulan, setFilterBulan] = useState("0");
+  const [filterSearch, setFilterSearch] = useState("");
+
+  const filteredSPJ = useMemo(() => {
+    let list = filterByBulan(spjList, filterBulan);
+    if (filterSearch.trim()) {
+      const q = filterSearch.toLowerCase();
+      list = list.filter(
+        (s) =>
+          s.nomorSPJ.toLowerCase().includes(q) ||
+          s.kegiatanNama.toLowerCase().includes(q) ||
+          s.nomorSPP.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [spjList, filterBulan, filterSearch]);
+
   const { data: penyetoranList = [] } = usePenyetoranPajak();
+  // BukuPembantuPajak dibutuhkan untuk mencari apakah suatu SPJ masih
+  // punya pajak yang sudah disetor (terhubung lewat nomorSPJ)
+  const { data: bukuPajakList = [] } = useBukuPembantuPajak();
   const { data: dataDesa } = useDataDesa();
   const tahun = useAppStore((s) => s.tahunAnggaran);
 
-  const idTerbaru = spjList.length > 0 ? spjList[0].id : null;
-  const adaPenyetoranPajak = penyetoranList.length > 0;
+  /**
+   * Cek apakah SPJ tertentu masih punya penyetoran pajak yang terkait.
+   * Caranya:
+   * 1. Cari semua bukuPembantuPajak yang nomorSPJ-nya cocok dengan SPJ ini.
+   * 2. Dari id-id tersebut, cek apakah ada PenyetoranPajakItem yang
+   *    bukuPembantuPajakIds-nya mengandung salah satu id tersebut.
+   */
+  function spjMasihAdaPenyetoranPajak(spj: SPJItem): boolean {
+    // Id-id bukuPembantuPajak yang terkait dengan SPJ ini
+    const bppIds = bukuPajakList
+      .filter((bp) => bp.nomorSPJ === spj.nomorSPJ)
+      .map((bp) => bp.id);
+
+    if (bppIds.length === 0) return false;
+
+    // Cek apakah ada penyetoran pajak yang referensikan salah satu bppId tersebut
+    return penyetoranList.some((p) =>
+      p.bukuPembantuPajakIds.some((id) => bppIds.includes(id))
+    );
+  }
 
   async function handleCetak(spj: SPJItem, jenis: string) {
     setCetakMenuId(null);
     setPrinting(true);
     try {
-      // Cari SPP yang terkait
       const sppTerkait = sppList.find((s) => s.id === spj.sppId);
 
       if (jenis === "spj") {
@@ -75,16 +114,16 @@ export function SPJList() {
             id: spj.sppId,
             nomorSPP: spj.nomorSPP,
             tanggal: spj.tanggal,
-            jenis: "Panjar",
+            jenis: "Panjar" as const,
             uraian: spj.kegiatanNama,
             kegiatanId: "",
             kegiatanNama: spj.kegiatanNama,
             rincianSPP: {},
             totalJumlah: spj.nilaiSPP,
-            status: "dicairkan",
+            status: "dicairkan" as const,
             inputOleh: "",
             createdAt: 0,
-          } as any),
+          }),
         });
       } else if (jenis === "lp" && sppTerkait) {
         await downloadPDF_LP({
@@ -129,15 +168,28 @@ export function SPJList() {
 
   return (
     <div className="flex flex-col h-full">
+      <ListFilter
+        bulan={filterBulan}
+        onBulanChange={setFilterBulan}
+        search={filterSearch}
+        onSearchChange={setFilterSearch}
+        searchPlaceholder="Cari nomor SPJ, kegiatan, SPP..."
+      />
       <ScrollArea className="flex-1">
         <div className="divide-y">
-          {spjList.map((spj) => {
+          {filteredSPJ.length === 0 && spjList.length > 0 && (
+            <div className="flex items-center justify-center h-24 text-muted-foreground text-xs">
+              Tidak ada SPJ sesuai filter
+            </div>
+          )}
+          {filteredSPJ.map((spj) => {
             const isExpanded = expandedId === spj.id;
             const isCetakOpen = cetakMenuId === spj.id;
             const pajakArr = Object.values(spj.pajakList ?? {});
-            // Cari jenis SPP terkait untuk menentukan apakah LP tersedia
             const sppTerkait = sppList.find((s) => s.id === spj.sppId);
             const isPanjar = sppTerkait?.jenis === "Panjar";
+            // Cek per-SPJ apakah masih ada penyetoran pajak terkait
+            const adaPenyetoranTerkait = spjMasihAdaPenyetoranPajak(spj);
 
             return (
               <div key={spj.id} className="px-4 py-3 space-y-1">
@@ -151,7 +203,8 @@ export function SPJList() {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-6 w-6"
+                        aria-label="Cetak dokumen SPJ"
+                        className="h-9 w-9"
                         onClick={() => setCetakMenuId(isCetakOpen ? null : spj.id)}
                         disabled={printing}
                         title="Cetak dokumen"
@@ -184,39 +237,42 @@ export function SPJList() {
                       )}
                     </div>
 
-                    {/* Edit & Hapus — hanya untuk SPJ terbaru */}
-                    {spj.id === idTerbaru && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                          onClick={() => {
-                            if (adaPenyetoranPajak) {
-                              setErrorMsg("Tidak bisa edit SPJ karena masih ada Penyetoran Pajak. Hapus Penyetoran Pajak terbawah dulu.");
-                              return;
-                            }
-                            setTargetEdit(spj);
-                          }}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive hover:text-destructive"
-                          onClick={() => {
-                            if (adaPenyetoranPajak) {
-                              setErrorMsg("Tidak bisa hapus SPJ karena masih ada Penyetoran Pajak. Hapus Penyetoran Pajak terbawah dulu.");
-                              return;
-                            }
-                            setTargetHapus(spj);
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
+                    {/* Edit & Hapus — tersedia untuk SEMUA SPJ,
+                        tapi dicegah jika SPJ ini masih punya penyetoran pajak terkait */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Ubah SPJ"
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        if (adaPenyetoranTerkait) {
+                          setErrorMsg(
+                            "Tidak bisa edit SPJ ini karena masih ada Penyetoran Pajak yang terkait. Hapus penyetoran pajaknya terlebih dahulu."
+                          );
+                          return;
+                        }
+                        setTargetEdit(spj);
+                      }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Hapus SPJ"
+                      className="h-9 w-9 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (adaPenyetoranTerkait) {
+                          setErrorMsg(
+                            "Tidak bisa hapus SPJ ini karena masih ada Penyetoran Pajak yang terkait. Hapus penyetoran pajaknya terlebih dahulu."
+                          );
+                          return;
+                        }
+                        setTargetHapus(spj);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
 
@@ -236,7 +292,7 @@ export function SPJList() {
                   </div>
                   <div className="rounded bg-muted/40 px-2 py-1.5 text-center">
                     <p className="text-muted-foreground">Realisasi</p>
-                    <p className="font-semibold tabular-nums text-teal-600">{formatRupiah(spj.nilaiRealisasi)}</p>
+                    <p className="font-semibold tabular-nums text-primary">{formatRupiah(spj.nilaiRealisasi)}</p>
                   </div>
                   <div className={`rounded px-2 py-1.5 text-center ${spj.sisaPanjar > 0 ? "bg-amber-50 dark:bg-amber-950/30" : "bg-muted/40"}`}>
                     <p className="text-muted-foreground">Sisa Panjar</p>
@@ -251,7 +307,7 @@ export function SPJList() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 text-xs px-1 text-muted-foreground"
+                      className="h-9 text-xs px-2 text-muted-foreground"
                       onClick={() => setExpandedId(isExpanded ? null : spj.id)}
                     >
                       {isExpanded ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
@@ -320,7 +376,8 @@ export function SPJList() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={async () => {
                 try {
-                  await hapus.mutateAsync(targetHapus!.id);
+                  if (!targetHapus) return;
+                  await hapus.mutateAsync(targetHapus.id);
                   toast.success("SPJ dihapus");
                   setTargetHapus(null);
                 } catch {

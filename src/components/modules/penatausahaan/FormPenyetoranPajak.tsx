@@ -5,9 +5,8 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAddPenyetoranPajak, useAddPenyetoranHutangPajak } from "@/hooks/usePenyetoranPajak";
@@ -134,7 +133,7 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
           uraian: `Penyetoran pajak ${namaGabung}`,
           bukuPembantuPajakIds: selectedIds,
           perKodePajak,
-        } as any);
+        });
       }
 
       // 2. Setor hutang pajak saldo awal (jika ada yang dipilih)
@@ -166,13 +165,13 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
-        <DialogContent className="w-full max-w-md max-h-[90vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="px-4 py-3 border-b shrink-0">
-            <DialogTitle>Penyetoran Pajak</DialogTitle>
-          </DialogHeader>
+      <Sheet open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
+        <SheetContent side="bottom" className="h-[92dvh] flex flex-col p-0 overflow-hidden" style={{ maxHeight: "92dvh" }}>
+          <SheetHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
+            <SheetTitle>Penyetoran Pajak</SheetTitle>
+          </SheetHeader>
 
-          <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-contain">
             <div className="p-4 space-y-4">
 
               {/* Jenis Pembayaran */}
@@ -186,15 +185,15 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
                       onClick={() => setJenisPembayaran(j)}
                       className={`flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors ${
                         jenisPembayaran === j
-                          ? "border-teal-600 bg-teal-50 dark:bg-teal-950/30"
+                          ? "border-primary bg-primary/5 dark:bg-primary/10"
                           : "border-border hover:bg-muted/50"
                       }`}
                     >
                       {j === "tunai"
-                        ? <Wallet className={`h-5 w-5 ${jenisPembayaran === j ? "text-teal-600" : "text-muted-foreground"}`} />
-                        : <Banknote className={`h-5 w-5 ${jenisPembayaran === j ? "text-teal-600" : "text-muted-foreground"}`} />
+                        ? <Wallet className={`h-5 w-5 ${jenisPembayaran === j ? "text-primary" : "text-muted-foreground"}`} />
+                        : <Banknote className={`h-5 w-5 ${jenisPembayaran === j ? "text-primary" : "text-muted-foreground"}`} />
                       }
-                      <span className={`text-xs font-semibold ${jenisPembayaran === j ? "text-teal-700 dark:text-teal-400" : ""}`}>
+                      <span className={`text-xs font-semibold ${jenisPembayaran === j ? "text-primary dark:text-primary" : ""}`}>
                         {j === "tunai" ? "Kas Tunai" : "Bank"}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
@@ -277,7 +276,7 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
                           onClick={() => toggleGroup(groupIds)}
                           className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold transition-colors ${
                             allSelected
-                              ? "bg-teal-50 dark:bg-teal-950/30 text-teal-700"
+                              ? "bg-primary/5 dark:bg-primary/10 text-primary"
                               : "bg-muted/40 hover:bg-muted/70"
                           }`}
                         >
@@ -297,7 +296,7 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
                               onClick={() => toggleItem(item.id)}
                               className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${
                                 selectedIds.includes(item.id)
-                                  ? "bg-teal-50/50 dark:bg-teal-950/20"
+                                  ? "bg-primary/5/50 dark:bg-primary/10"
                                   : "hover:bg-muted/30"
                               }`}
                             >
@@ -311,7 +310,7 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
                                 <span className="font-medium">{formatRupiah(item.jumlah)}</span>
                                 <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 ${
                                   selectedIds.includes(item.id)
-                                    ? "bg-teal-600 border-teal-600"
+                                    ? "bg-primary border-primary"
                                     : "border-muted-foreground"
                                 }`}>
                                   {selectedIds.includes(item.id) && <span className="text-white text-[10px]">✓</span>}
@@ -344,7 +343,7 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
                   {totalHutangDipilih > 0 && totalSPJ > 0 && <Separator />}
                   <div className="flex justify-between text-sm font-semibold">
                     <span>Total Setor</span>
-                    <span className="text-teal-600">{formatRupiah(totalSetor)}</span>
+                    <span className="text-primary">{formatRupiah(totalSetor)}</span>
                   </div>
                   {melebihiSaldo && (
                     <p className="text-xs text-destructive flex items-center gap-1">
@@ -355,25 +354,25 @@ export function FormPenyetoranPajak({ open, onClose }: FormPenyetoranPajakProps)
                 </div>
               )}
 
-              {/* Tombol */}
-              <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onClose(); }}>
-                  Batal
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1"
-                  disabled={!bisaSubmit || addSetor.isPending || addSetorHutang.isPending}
-                  onClick={() => setKonfirmOpen(true)}
-                >
-                  {(addSetor.isPending || addSetorHutang.isPending) ? "Memproses..." : "Setor Pajak"}
-                </Button>
-              </div>
-
             </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+          </div>
+
+          {/* Footer tombol */}
+          <div className="shrink-0 border-t px-4 py-3 flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onClose(); }}>
+              Batal
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              disabled={!bisaSubmit || addSetor.isPending || addSetorHutang.isPending}
+              onClick={() => setKonfirmOpen(true)}
+            >
+              {(addSetor.isPending || addSetorHutang.isPending) ? "Memproses..." : "Setor Pajak"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <AlertDialog open={konfirmOpen} onOpenChange={setKonfirmOpen}>
         <AlertDialogContent>

@@ -195,7 +195,7 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
           </div>
           <Badge
             variant={status === "dikonfirmasi" ? "default" : "secondary"}
-            className={status === "dikonfirmasi" ? "bg-teal-600 hover:bg-teal-700 shrink-0" : "shrink-0"}
+            className={status === "dikonfirmasi" ? "bg-primary hover:bg-primary/90 shrink-0" : "shrink-0"}
           >
             {status === "dikonfirmasi" ? "Dikonfirmasi" : "Draft"}
           </Badge>
@@ -207,9 +207,9 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
             <p className="text-muted-foreground">Pagu APBDes</p>
             <p className="font-semibold text-blue-700">{formatRupiah(paguAPBDes)}</p>
           </div>
-          <div className="rounded bg-teal-50 px-2 py-1.5">
+          <div className="rounded bg-primary/5 px-2 py-1.5">
             <p className="text-muted-foreground">Total DPA</p>
-            <p className={`font-semibold ${melebihi ? "text-red-600" : "text-teal-700"}`}>
+            <p className={`font-semibold ${melebihi ? "text-red-600" : "text-primary"}`}>
               {formatRupiah(totalDPA)}
             </p>
           </div>
@@ -274,7 +274,7 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
                 <div
                   key={bulanKe}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 border transition-colors ${
-                    adaIsi ? "bg-teal-50/60 border-teal-200" : "bg-muted/20 border-transparent"
+                    adaIsi ? "bg-primary/5 border-primary/30" : "bg-muted/20 border-transparent"
                   }`}
                 >
                   <div className="w-24 shrink-0">
@@ -296,7 +296,7 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
                     className="h-8 text-sm flex-1"
                   />
                   <div className="w-36 text-right shrink-0">
-                    <span className={`text-sm font-medium ${adaIsi ? "text-teal-700" : "text-muted-foreground"}`}>
+                    <span className={`text-sm font-medium ${adaIsi ? "text-primary" : "text-muted-foreground"}`}>
                       {adaIsi ? formatRupiah(jumlahBulan) : "—"}
                     </span>
                   </div>
@@ -310,7 +310,7 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
             <div className="w-24 shrink-0 text-sm font-semibold">Total</div>
             <div className="flex-1" />
             <div className="w-36 text-right">
-              <span className={`text-sm font-bold ${melebihi ? "text-red-600" : "text-teal-700"}`}>
+              <span className={`text-sm font-bold ${melebihi ? "text-red-600" : "text-primary"}`}>
                 {formatRupiah(totalDPA)}
               </span>
             </div>
@@ -321,7 +321,7 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
             {status === "draft" && (
               <>
                 <Button
-                  className="w-full bg-teal-600 hover:bg-teal-700"
+                  className="w-full bg-primary hover:bg-primary/90"
                   size="sm"
                   onClick={handleKonfirmasi}
                   disabled={updateMeta.isPending}
@@ -390,11 +390,28 @@ export function DPAView() {
   const { data: apbdesData, isLoading: loadingAPBDes } = useAPBDes();
   const { data: dpaMap, isLoading: loadingDPA } = useDPA();
 
-  const [selectedBidang, setSelectedBidang] = useState<string | null>(null);
-  const [selectedSubBidang, setSelectedSubBidang] = useState<string | null>(null);
+  // Multi-expand state — konsisten dengan BidangKegiatanTree & BelanjaBidangTree
+  const [expandedBidang, setExpandedBidang] = useState<Set<string>>(new Set());
+  const [expandedSubBidang, setExpandedSubBidang] = useState<Set<string>>(new Set());
   const [selectedKegiatan, setSelectedKegiatan] = useState<KegiatanItem | null>(null);
-  // C — Filter sumber dana
+  // Filter sumber dana
   const [filterSumber, setFilterSumber] = useState<SumberDana | "semua">("semua");
+
+  function toggleBidang(kode: string) {
+    setExpandedBidang((prev) => {
+      const next = new Set(prev);
+      if (next.has(kode)) next.delete(kode); else next.add(kode);
+      return next;
+    });
+  }
+
+  function toggleSubBidang(key: string) {
+    setExpandedSubBidang((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
 
   const kegiatanAll: KegiatanItem[] = useMemo(() => {
     if (!apbdesData?.belanja) return [];
@@ -414,41 +431,34 @@ export function DPAView() {
     );
   }, [kegiatanAll, filterSumber]);
 
-  const bidangList = useMemo(() => {
-    const map = new Map<string, string>();
-    kegiatanList.forEach((k) => {
-      if (!map.has(k.bidangKode)) map.set(k.bidangKode, k.bidangNama);
-    });
-    return Array.from(map.entries())
-      .map(([kode, nama]) => ({ kode, nama }))
-      .sort((a, b) => a.kode.localeCompare(b.kode));
+  // bidangList removed — treeMap is used directly in JSX
+
+  // Build tree map: bidangKode -> subBidangKode -> kegiatan[]
+  const treeMap = useMemo(() => {
+    const map = new Map<string, { nama: string; subMap: Map<string, { nama: string; kegiatan: KegiatanItem[] }> }>();
+    for (const k of kegiatanList) {
+      if (!map.has(k.bidangKode)) map.set(k.bidangKode, { nama: k.bidangNama, subMap: new Map() });
+      // reason: map.set() dipanggil di baris sebelumnya, .get() dijamin ada
+      const bidang = map.get(k.bidangKode)!;
+      if (!bidang.subMap.has(k.subBidangKode)) bidang.subMap.set(k.subBidangKode, { nama: k.subBidangNama, kegiatan: [] });
+      // reason: subMap.set() dipanggil di baris sebelumnya, .get() dijamin ada
+      bidang.subMap.get(k.subBidangKode)!.kegiatan.push(k);
+    }
+    return map;
   }, [kegiatanList]);
 
-  const subBidangList = useMemo(() => {
-    if (!selectedBidang) return [];
-    const map = new Map<string, string>();
-    kegiatanList
-      .filter((k) => k.bidangKode === selectedBidang)
-      .forEach((k) => {
-        if (!map.has(k.subBidangKode)) map.set(k.subBidangKode, k.subBidangNama);
-      });
-    return Array.from(map.entries())
-      .map(([kode, nama]) => ({ kode, nama }))
-      .sort((a, b) => a.kode.localeCompare(b.kode));
-  }, [kegiatanList, selectedBidang]);
-
-  const filteredKegiatan = useMemo(() => {
-    if (!selectedSubBidang) return [];
-    return kegiatanList
-      .filter((k) => k.bidangKode === selectedBidang && k.subBidangKode === selectedSubBidang)
+  // Helper: get kegiatan list for a specific sub-bidang
+  function getKegiatan(bidangKode: string, subBidangKode: string): KegiatanItem[] {
+    return (treeMap.get(bidangKode)?.subMap.get(subBidangKode)?.kegiatan ?? [])
+      .slice()
       .sort((a, b) => a.namaKegiatan.localeCompare(b.namaKegiatan));
-  }, [kegiatanList, selectedBidang, selectedSubBidang]);
+  }
 
-  // Reset pilihan jika filter berubah menyebabkan kegiatan terpilih tidak ada
+  // Reset pilihan jika filter berubah
   const handleFilterSumber = (val: SumberDana | "semua") => {
     setFilterSumber(val);
-    setSelectedBidang(null);
-    setSelectedSubBidang(null);
+    setExpandedBidang(new Set());
+    setExpandedSubBidang(new Set());
     setSelectedKegiatan(null);
   };
 
@@ -483,7 +493,7 @@ export function DPAView() {
     const dpa = dpaMap?.[kegiatanId];
     if (!dpa) return null;
     if (dpa.status === "dikonfirmasi")
-      return <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0 inline-block" />;
+      return <span className="w-2 h-2 rounded-full bg-primary/50 shrink-0 inline-block" />;
     if (dpa.totalDPA > 0)
       return <span className="w-2 h-2 rounded-full bg-yellow-400 shrink-0 inline-block" />;
     return null;
@@ -491,11 +501,11 @@ export function DPAView() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* C — Filter sumber dana (bar atas) */}
+      {/* Filter sumber dana */}
       <div className="shrink-0 px-4 py-2 border-b flex items-center gap-2">
         <span className="text-xs text-muted-foreground shrink-0">Filter:</span>
         <Select value={filterSumber} onValueChange={(v) => handleFilterSumber(v as SumberDana | "semua")}>
-          <SelectTrigger className="h-8 text-xs w-64">
+          <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -507,148 +517,109 @@ export function DPAView() {
           </SelectContent>
         </Select>
         {filterSumber !== "semua" && (
-          <Badge variant="secondary" className="text-xs">
-            {kegiatanList.length} kegiatan ditemukan
+          <Badge variant="secondary" className="text-xs shrink-0">
+            {kegiatanList.length}
           </Badge>
         )}
       </div>
 
-      <div className="flex flex-1 overflow-x-auto overflow-y-hidden min-h-0">
-        <div className="flex h-full min-w-max">
-          {/* Kolom 1 — Bidang */}
-          <div className="w-56 shrink-0 border-r flex flex-col h-full">
-            <div className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 border-b">BIDANG</div>
-            <ScrollArea className="flex-1 min-h-0">
-              {bidangList.length === 0 && (
-                <p className="text-xs text-muted-foreground px-3 py-4 text-center">
-                  {filterSumber !== "semua" ? "Tidak ada kegiatan dengan sumber dana ini" : "Belum ada bidang"}
-                </p>
-              )}
-              {bidangList.map((b) => (
-                <button
-                  key={b.kode}
-                  className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-2 border-l-2 transition-colors ${
-                    selectedBidang === b.kode
-                      ? "bg-teal-50 border-l-teal-600 text-teal-900"
-                      : "border-l-transparent hover:bg-muted/50"
-                  }`}
-                  onClick={() => {
-                    setSelectedBidang(b.kode);
-                    setSelectedSubBidang(null);
-                    setSelectedKegiatan(null);
-                  }}
-                >
-                  <span className="font-mono text-xs text-muted-foreground w-8 shrink-0">{b.kode}</span>
-                  <span className="flex-1 leading-snug">{b.nama}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                </button>
-              ))}
-            </ScrollArea>
-          </div>
-
-          {/* Kolom 2 — Sub-Bidang */}
-          <div className="w-56 shrink-0 border-r flex flex-col h-full">
-            <div className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 border-b">SUB BIDANG</div>
-            <ScrollArea className="flex-1 min-h-0">
-              {!selectedBidang ? (
-                <p className="text-xs text-muted-foreground px-3 py-4">Pilih bidang dahulu</p>
-              ) : subBidangList.length === 0 ? (
-                <p className="text-xs text-muted-foreground px-3 py-4">Tidak ada sub-bidang</p>
-              ) : (
-                subBidangList.map((sb) => (
+      {/* 2-panel: kiri accordion, kanan detail */}
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Panel kiri — accordion multi-expand (konsisten dengan BidangKegiatanTree & BelanjaBidangTree) */}
+        <div className="w-44 sm:w-56 shrink-0 border-r flex flex-col overflow-y-auto">
+          {treeMap.size === 0 && (
+            <p className="text-xs text-muted-foreground px-3 py-4 text-center">
+              {filterSumber !== "semua" ? "Tidak ada kegiatan dengan sumber dana ini" : "Belum ada bidang"}
+            </p>
+          )}
+          {Array.from(treeMap.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([bidangKode, bidangData]) => {
+              const isOpenB = expandedBidang.has(bidangKode);
+              return (
+                <div key={bidangKode}>
                   <button
-                    key={sb.kode}
-                    className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-2 border-l-2 transition-colors ${
-                      selectedSubBidang === sb.kode
-                        ? "bg-teal-50 border-l-teal-600 text-teal-900"
+                    className={`w-full text-left px-3 py-2.5 flex items-center gap-2 border-b border-l-2 transition-colors ${
+                      isOpenB
+                        ? "bg-primary/5 dark:bg-primary/10 border-l-primary"
                         : "border-l-transparent hover:bg-muted/50"
                     }`}
-                    onClick={() => {
-                      setSelectedSubBidang(sb.kode);
-                      setSelectedKegiatan(null);
-                    }}
+                    onClick={() => toggleBidang(bidangKode)}
                   >
-                    <span className="font-mono text-xs text-muted-foreground w-8 shrink-0">{sb.kode}</span>
-                    <span className="flex-1 leading-snug">{sb.nama}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-muted-foreground">{bidangKode}</p>
+                      <p className="text-xs font-medium leading-snug truncate">{bidangData.nama}</p>
+                    </div>
+                    <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform ${isOpenB ? "rotate-90" : ""}`} />
                   </button>
-                ))
-              )}
-            </ScrollArea>
-          </div>
 
-          {/* Kolom 3 — Kegiatan */}
-          <div className="w-64 shrink-0 border-r flex flex-col h-full">
-            <div className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 border-b">KEGIATAN</div>
-            <ScrollArea className="flex-1 min-h-0">
-              {!selectedSubBidang ? (
-                <p className="text-xs text-muted-foreground px-3 py-4">Pilih sub-bidang dahulu</p>
-              ) : filteredKegiatan.length === 0 ? (
-                <p className="text-xs text-muted-foreground px-3 py-4">Tidak ada kegiatan</p>
-              ) : (
-                filteredKegiatan.map((k) => {
-                  const dpa = dpaMap?.[k.id];
-                  const melebihi = dpa && k.totalPagu > 0 && dpa.totalDPA > k.totalPagu;
-                  // C — Tampilkan badge sumber dana di setiap kegiatan
-                  const sumberSet = new Set((k.rekeningList ?? []).map((r) => r.sumberDana).filter(Boolean));
-                  const sumberList = Array.from(sumberSet).join(", ");
-                  return (
-                    <button
-                      key={k.id}
-                      className={`w-full text-left px-3 py-2.5 text-sm flex items-start gap-2 border-l-2 transition-colors ${
-                        selectedKegiatan?.id === k.id
-                          ? "bg-teal-50 border-l-teal-600 text-teal-900"
-                          : "border-l-transparent hover:bg-muted/50"
-                      }`}
-                      onClick={() => setSelectedKegiatan(k)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="leading-snug font-medium truncate">{k.namaKegiatan}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Pagu: {formatRupiah(k.totalPagu ?? 0)}
-                        </p>
-                        {sumberList && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{sumberList}</p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
-                        {getKegiatanBadge(k.id)}
-                        {melebihi && <AlertTriangle className="w-3 h-3 text-red-500" />}
-                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </ScrollArea>
-            {selectedSubBidang && filteredKegiatan.length > 0 && (
-              <div className="px-3 py-2 border-t text-xs text-muted-foreground space-y-0.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-teal-500 inline-block" /> Dikonfirmasi
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> Draft (ada isian)
-                </div>
-              </div>
-            )}
-          </div>
+                  {isOpenB && Array.from(bidangData.subMap.entries())
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([sbKode, sbData]) => {
+                      const sbKey = `${bidangKode}|${sbKode}`;
+                      const isOpenSB = expandedSubBidang.has(sbKey);
+                      const kegiatan = getKegiatan(bidangKode, sbKode);
+                      return (
+                        <div key={sbKode}>
+                          <button
+                            className={`w-full text-left pl-5 pr-3 py-2 flex items-center gap-2 border-b border-l-2 transition-colors ${
+                              isOpenSB
+                                ? "bg-primary/5 dark:bg-primary/5 border-l-primary/70"
+                                : "border-l-transparent hover:bg-muted/30"
+                            }`}
+                            onClick={() => toggleSubBidang(sbKey)}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] text-muted-foreground font-mono">{sbKode}</p>
+                              <p className="text-xs font-medium leading-snug truncate">{sbData.nama}</p>
+                            </div>
+                            <ChevronRight className={`w-3 h-3 text-muted-foreground shrink-0 transition-transform ${isOpenSB ? "rotate-90" : ""}`} />
+                          </button>
 
-          {/* Kolom 4 — Detail */}
-          <div className="flex-1 flex flex-col h-full overflow-hidden">
-            <div className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 border-b">
-              RENCANA PENARIKAN DANA PER BULAN
+                          {isOpenSB && kegiatan.map((k) => {
+                            const isSelK = selectedKegiatan?.id === k.id;
+                            return (
+                              <button
+                                key={k.id}
+                                className={`w-full text-left pl-8 pr-3 py-2 flex items-start gap-2 border-b border-l-2 transition-colors ${
+                                  isSelK
+                                    ? "bg-primary/5 dark:bg-primary/10 border-l-primary"
+                                    : "border-l-transparent hover:bg-muted/20"
+                                }`}
+                                onClick={() => setSelectedKegiatan(k)}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium leading-snug">{k.namaKegiatan}</p>
+                                  <p className="text-[10px] text-muted-foreground tabular-nums">{formatRupiah(k.totalPagu ?? 0)}</p>
+                                </div>
+                                {getKegiatanBadge(k.id)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })
+                  }
+                </div>
+              );
+            })
+          }
+        </div>
+
+
+        {/* Panel kanan — detail DPA */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {!selectedKegiatan ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm p-8 text-center">
+              <FileText className="w-10 h-10 mb-3 opacity-20" />
+              <p>Pilih kegiatan untuk mengisi rencana penarikan dana</p>
             </div>
-            {!selectedKegiatan ? (
-              <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground text-sm p-8 text-center">
-                <FileText className="w-10 h-10 mb-3 opacity-20" />
-                <p>Pilih kegiatan untuk mengisi rencana penarikan dana</p>
-              </div>
-            ) : (
-              <DetailPanel kegiatan={selectedKegiatan} />
-            )}
-          </div>
+          ) : (
+            <DetailPanel kegiatan={selectedKegiatan} />
+          )}
         </div>
       </div>
+
     </div>
   );
 }

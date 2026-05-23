@@ -7,18 +7,19 @@ import { ref, onValue, push, update, get, remove } from "firebase/database";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/store/appStore";
 import { useAuthStore } from "@/store/authStore";
+import { generateNomorDokumen } from "@/lib/nomorDokumen";
 
-async function generateNomorSPJ(tahun: string): Promise<string> {
-  const r = ref(database, `siskeudesOnline/tahun/${tahun}/spj`);
-  const snap = await get(r);
-  const count = snap.exists() ? Object.keys(snap.val()).length : 0;
-  return `SPJ/${String(count + 1).padStart(3, "0")}/${tahun}`;
+/** Ambil kodeDesa dari Firebase config — fallback ke "00.0000" jika belum diset */
+async function getKodeDesa(): Promise<string> {
+  const snap = await get(ref(database, "siskeudesOnline/config/desa/kodeDesa"));
+  return snap.exists() ? (snap.val() as string) : "00.0000";
 }
 
 export function useJumlahSPJ() {
   const { data: list = [] } = useSPJ();
   return list.length;
 }
+
 export function useSPJ() {
   const tahun = useAppStore((s) => s.tahunAnggaran);
   return useQuery<SPJItem[]>({
@@ -30,7 +31,11 @@ export function useSPJ() {
           if (!snap.exists()) return resolve([]);
           const raw = snap.val() as Record<string, Omit<SPJItem, "id">>;
           const list = Object.entries(raw).map(([id, v]) => ({ id, ...v }));
-          list.sort((a, b) => b.createdAt - a.createdAt);
+          // Sort by tanggal descending, tiebreak by createdAt descending
+          list.sort(
+            (a, b) =>
+              b.tanggal.localeCompare(a.tanggal) || b.createdAt - a.createdAt
+          );
           resolve(list);
         }, { onlyOnce: true });
       }),
@@ -60,6 +65,8 @@ async function writeSPJToBKUAndPajak(
   });
 
   // Sisa panjar → penerimaan balik ke BKU
+  // mediaPembayaran ikut dari SPP: jika SPP pakai bank maka sisa panjar kembali ke bank,
+  // jika SPP pakai tunai maka sisa panjar kembali ke tunai.
   if (payload.sisaPanjar > 0) {
     await push(ref(database, `siskeudesOnline/tahun/${tahun}/bku`), {
       tanggal: payload.tanggal,
@@ -69,6 +76,7 @@ async function writeSPJToBKUAndPajak(
       jenisRef: "spj_sisa_panjar",
       nomorRef: nomorSPJ,
       sppId: payload.sppId,
+      mediaPembayaran: payload.mediaPembayaran, // ikut media SPP
       inputOleh: uid,
       createdAt: Date.now() + 2,
     });
@@ -93,7 +101,7 @@ async function writeSPJToBKUAndPajak(
   }
 
   // Tiap pajak → HANYA BukuPembantuPajak (belum masuk BKU sampai Setor Pajak)
-  const pajakArr = Object.values(payload.pajakList);
+  const pajakArr = Object.values(payload.pajakList) as PajakSPJ[];
   for (let i = 0; i < pajakArr.length; i++) {
     const pajak = pajakArr[i];
     if (pajak.jumlahPajak > 0) {
@@ -120,7 +128,8 @@ export function useAddSPJ() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: AddSPJPayload) => {
-      const nomorSPJ = await generateNomorSPJ(tahun);
+      const kodeDesa = await getKodeDesa();
+      const nomorSPJ = await generateNomorDokumen("SPJ", kodeDesa, tahun);
       await push(ref(database, `siskeudesOnline/tahun/${tahun}/spj`), {
         ...payload,
         nomorSPJ,

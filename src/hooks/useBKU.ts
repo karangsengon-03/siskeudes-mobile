@@ -58,6 +58,13 @@ export function useSaldoBank() {
   const { data: bkuAll = [] } = useBKU();
   let saldo = 0;
   for (const b of bkuAll) {
+    // Saldo awal kas bank
+    if (b.jenisRef === "saldo_awal") {
+      const media = (b as any).mediaPembayaran ?? "bank";
+      if (media === "bank") {
+        saldo += b.penerimaan;
+      }
+    }
     // Masuk bank: penerimaan via rekening bank
     if (b.jenisRef === "penerimaan_bank") {
       saldo += b.penerimaan;
@@ -66,7 +73,6 @@ export function useSaldoBank() {
     if (b.jenisRef === "mutasi_kas") {
       const jp = (b as any).jenisPembayaran ?? "bank";
       if (jp === "bank") {
-        // bank_ke_tunai: keluar dari bank (pengeluaran), atau tunai_ke_bank: masuk ke bank (penerimaan)
         saldo -= b.pengeluaran;
         saldo += b.penerimaan;
       }
@@ -76,6 +82,13 @@ export function useSaldoBank() {
       const media = (b as any).mediaPembayaran ?? "bank";
       if (media === "bank") {
         saldo -= b.pengeluaran;
+      }
+    }
+    // Sisa panjar kembali ke bank jika SPP asal pakai bank
+    if (b.jenisRef === "spj_sisa_panjar") {
+      const media = (b as any).mediaPembayaran ?? "tunai";
+      if (media === "bank") {
+        saldo += b.penerimaan;
       }
     }
     // Titipan pajak dari SPJ via bank
@@ -107,6 +120,13 @@ export function useSaldoTunai() {
   const { data: bkuAll = [] } = useBKU();
   let saldo = 0;
   for (const b of bkuAll) {
+    // Saldo awal kas tunai
+    if (b.jenisRef === "saldo_awal") {
+      const media = (b as any).mediaPembayaran ?? "bank";
+      if (media === "tunai") {
+        saldo += b.penerimaan;
+      }
+    }
     // Masuk tunai: penerimaan tunai langsung
     if (b.jenisRef === "penerimaan_tunai") {
       saldo += b.penerimaan;
@@ -115,14 +135,16 @@ export function useSaldoTunai() {
     if (b.jenisRef === "mutasi_kas") {
       const jp = (b as any).jenisPembayaran ?? "bank";
       if (jp === "tunai") {
-        // bank_ke_tunai: masuk ke tunai (penerimaan), atau tunai_ke_bank: keluar dari tunai (pengeluaran)
         saldo += b.penerimaan;
         saldo -= b.pengeluaran;
       }
     }
-    // Masuk tunai: sisa panjar dikembalikan ke kas tunai
+    // Sisa panjar kembali ke tunai jika SPP asal pakai tunai
     if (b.jenisRef === "spj_sisa_panjar") {
-      saldo += b.penerimaan;
+      const media = (b as any).mediaPembayaran ?? "tunai";
+      if (media === "tunai") {
+        saldo += b.penerimaan;
+      }
     }
     // Keluar tunai: SPP yang mediaPembayaran-nya "tunai"
     if (b.jenisRef === "spp") {

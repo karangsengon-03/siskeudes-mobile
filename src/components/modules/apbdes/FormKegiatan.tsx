@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useFieldArray, useForm, Controller } from "react-hook-form";
+import type { Control, UseFormRegister } from "react-hook-form";
 import { Plus, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { nanoid } from "nanoid";
@@ -255,7 +256,6 @@ export function FormKegiatan({ open, onClose, editData, variant = "awal", readOn
   }
 
   async function onSubmit(data: FormValues) {
-    console.log("submit data:", data);
     if (data.rekeningList.length === 0 && !editData) {
       toast.error("Tambahkan minimal 1 kode rekening");
       return;
@@ -449,7 +449,7 @@ export function FormKegiatan({ open, onClose, editData, variant = "awal", readOn
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Rincian Anggaran (RAB)</Label>
-                <span className="text-sm font-semibold text-teal-600">
+                <span className="text-sm font-semibold text-primary">
                   {formatRupiah(calcGrandTotal())}
                 </span>
               </div>
@@ -538,14 +538,15 @@ export function FormKegiatan({ open, onClose, editData, variant = "awal", readOn
                         />
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs font-medium text-teal-600">
+                        <span className="text-xs font-medium text-primary">
                           {formatRupiah(totalRek)}
                         </span>
                         <Button
                           type="button"
                           size="icon"
+                          aria-label="Hapus rekening"
                           variant="ghost"
-                          className="h-6 w-6 text-destructive"
+                          className="h-9 w-9 text-destructive"
                           onClick={(e) => {
                             e.stopPropagation();
                             removeRekening(rIdx);
@@ -619,8 +620,8 @@ function SubItemsField({
   rIdx,
   watchedRekeningList,
 }: {
-  control: any;
-  register: any;
+  control: Control<FormValues>;
+  register: UseFormRegister<FormValues>;
   rIdx: number;
   watchedRekeningList: RekeningForm[];
 }) {
@@ -648,8 +649,9 @@ function SubItemsField({
               <Button
                 type="button"
                 size="icon"
+                aria-label="Hapus sub-item"
                 variant="ghost"
-                className="h-7 w-7 text-destructive shrink-0"
+                className="h-9 w-9 text-destructive shrink-0"
                 onClick={() => remove(sIdx)}
                 disabled={fields.length === 1}
               >
@@ -685,7 +687,7 @@ function SubItemsField({
                 />
               </div>
             </div>
-            <div className="text-right text-xs font-medium text-teal-600">
+            <div className="text-right text-xs font-medium text-primary">
               = {formatRupiah(jumlah)}
             </div>
           </div>

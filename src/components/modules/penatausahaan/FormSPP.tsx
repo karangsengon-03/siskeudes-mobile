@@ -12,12 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +26,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAPBDes } from "@/hooks/useAPBDes";
-import { useAddSPP, useRealisasiRekening } from "@/hooks/useSPP";
+import { useAddSPP, useRealisasiRekening, useSPP } from "@/hooks/useSPP";
+import { useDPA } from "@/hooks/useDPA";
 import { formatRupiah } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
@@ -43,7 +39,7 @@ import {
 } from "@/lib/types";
 import { useEditSPP } from "@/hooks/useSPP";
 import { toast } from "sonner";
-import { AlertCircle, Banknote, Check, Plus, Trash2, Wallet } from "lucide-react";
+import { AlertCircle, AlertTriangle, Banknote, Check, Plus, Trash2, Wallet } from "lucide-react";
 import { nanoid } from "nanoid";
 
 interface FormSPPProps {
@@ -144,7 +140,8 @@ function RincianRowWithRealisasi({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-destructive hover:text-destructive"
+              aria-label="Hapus rincian SPP"
+              className="h-9 w-9 text-destructive hover:text-destructive"
               onClick={onRemove}
             >
               <Trash2 className="h-3 w-3" />
@@ -171,7 +168,8 @@ function RincianRowWithRealisasi({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-5 w-5 text-destructive hover:text-destructive"
+              aria-label="Hapus sub-rincian SPP"
+              className="h-9 w-9 text-destructive hover:text-destructive"
               onClick={onRemove}
             >
               <Trash2 className="h-3 w-3" />
@@ -203,11 +201,11 @@ function RincianRowWithRealisasi({
                     dipakai
                       ? "opacity-40 cursor-not-allowed bg-muted/30"
                       : aktif
-                      ? "bg-teal-50 dark:bg-teal-950/30"
+                      ? "bg-primary/5 dark:bg-primary/10"
                       : "hover:bg-muted/50"
                   )}
                 >
-                  <Check className={cn("h-3 w-3 mt-0.5 shrink-0", aktif ? "text-teal-600" : "invisible")} />
+                  <Check className={cn("h-3 w-3 mt-0.5 shrink-0", aktif ? "text-primary" : "invisible")} />
                   <span className=" overflow-wrap: break-word leading-snug">
                     <span className="font-mono">{r.kodeRekening}</span>
                     {" — "}
@@ -261,10 +259,14 @@ function RincianRowWithRealisasi({
 
 // ── Komponen utama ─────────────────────────────────────────
 
+// ── Komponen utama ─────────────────────────────────────────
+
 export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
   const { data: apbdes } = useAPBDes();
   const addSPP = useAddSPP();
   const editSPP = useEditSPP();
+  const { data: dpaData = {} } = useDPA();
+  const { data: allSPP = [] } = useSPP();
 
   const [jenis, setJenis] = useState<JenisSPP>("Definitif");
   const [mediaPembayaran, setMediaPembayaran] = useState<"tunai" | "bank">("bank");
@@ -272,6 +274,7 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
   const [uraian, setUraian] = useState("");
   const [rincianList, setRincianList] = useState<RincianDraft[]>([]);
   const [konfirmOpen, setKonfirmOpen] = useState(false);
+  const [rakWarnOpen, setRakWarnOpen] = useState(false);
 
   const [selBidang, setSelBidang] = useState<BidangNode | null>(null);
   const [selSubBidang, setSelSubBidang] = useState<SubBidangNode | null>(null);
@@ -380,11 +383,41 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
     setSelKegiatan(null);
   }
 
+  // ── RAK warning logic ───────────────────────────────────
+  const bulanSPP = tanggal ? new Date(tanggal).getMonth() + 1 : new Date().getMonth() + 1;
+  const rakBulanIni = selKegiatan
+    ? (dpaData[selKegiatan.id]?.bulan?.[String(bulanSPP)]?.jumlah ?? 0)
+    : 0;
+  const totalSPPBulanIni = selKegiatan
+    ? allSPP
+        .filter((s) => {
+          if (s.kegiatanId !== selKegiatan.id) return false;
+          if (s.status === "draft") return false;
+          return new Date(s.tanggal).getMonth() + 1 === bulanSPP;
+        })
+        .reduce((sum, s) => sum + s.totalJumlah, 0)
+    : 0;
+  // Exclude editItem dari perhitungan (agar edit tidak double-count)
+  const totalSPPTanpaEdit = editItem && editItem.status !== "draft" && new Date(editItem.tanggal).getMonth() + 1 === bulanSPP
+    ? totalSPPBulanIni - editItem.totalJumlah
+    : totalSPPBulanIni;
+  const sisaRAK = rakBulanIni - totalSPPTanpaEdit;
+  const rakMelebihi = rakBulanIni > 0 && totalJumlah > sisaRAK;
+
   const bisaSubmit =
     selKegiatan !== null &&
     uraian.trim() !== "" &&
     rincianList.length > 0 &&
     rincianList.every((r) => r.kodeRekening !== "" && parseFloat(r.jumlah) > 0);
+
+  // Saat klik "Simpan SPP": cek RAK dulu, kalau melebihi tampilkan warning, jika tidak langsung konfirmasi
+  function handleClickSimpan() {
+    if (rakMelebihi) {
+      setRakWarnOpen(true);
+    } else {
+      setKonfirmOpen(true);
+    }
+  }
 
   async function handleKonfirmasi() {
     if (!selKegiatan) return;
@@ -436,16 +469,16 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
 
   return (
     <>
-      <Dialog
+      <Sheet
         open={open}
         onOpenChange={(v) => {
           if (!v) { resetForm(); onClose(); }
         }}
       >
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="px-4 py-3 border-b shrink-0">
-            <DialogTitle>{editItem ? "Edit SPP" : "Buat SPP Baru"}</DialogTitle>
-          </DialogHeader>
+        <SheetContent side="bottom" className="h-[92dvh] flex flex-col p-0 overflow-hidden" style={{ maxHeight: "92dvh" }}>
+          <SheetHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
+            <SheetTitle>{editItem ? "Edit SPP" : "Buat SPP Baru"}</SheetTitle>
+          </SheetHeader>
 
           <div className="flex-1 overflow-y-auto overscroll-contain">
             <div className="p-4 space-y-4">
@@ -462,15 +495,15 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
                       className={cn(
                         "flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 transition-colors",
                         mediaPembayaran === m
-                          ? "border-teal-600 bg-teal-50 dark:bg-teal-950/30"
+                          ? "border-primary bg-primary/5 dark:bg-primary/10"
                           : "border-border hover:bg-muted/50"
                       )}
                     >
                       {m === "bank"
-                        ? <Banknote className={cn("h-4 w-4 shrink-0", mediaPembayaran === m ? "text-teal-600" : "text-muted-foreground")} />
-                        : <Wallet className={cn("h-4 w-4 shrink-0", mediaPembayaran === m ? "text-teal-600" : "text-muted-foreground")} />
+                        ? <Banknote className={cn("h-4 w-4 shrink-0", mediaPembayaran === m ? "text-primary" : "text-muted-foreground")} />
+                        : <Wallet className={cn("h-4 w-4 shrink-0", mediaPembayaran === m ? "text-primary" : "text-muted-foreground")} />
                       }
-                      <span className={cn("text-xs font-semibold", mediaPembayaran === m ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground")}>
+                      <span className={cn("text-xs font-semibold", mediaPembayaran === m ? "text-primary dark:text-primary" : "text-muted-foreground")}>
                         {m === "bank" ? "Transfer Bank" : "Kas Tunai"}
                       </span>
                     </button>
@@ -574,18 +607,50 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
 
                 {/* Info kegiatan terpilih */}
                 {selKegiatan && (
-                  <div className="rounded-md border border-teal-200 bg-teal-50 dark:bg-teal-950/30 px-3 py-2 flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-teal-700 dark:text-teal-400 overflow-wrap: break-word">
-                        ✓ {selKegiatan.namaKegiatan}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {selKegiatan.kodeKegiatan} · Pagu: {formatRupiah(selKegiatan.totalPagu)}
-                      </p>
+                  <div className="space-y-2">
+                    <div className="rounded-md border border-primary/30 bg-primary/5 dark:bg-primary/10 px-3 py-2 flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-primary dark:text-primary overflow-wrap: break-word">
+                          ✓ {selKegiatan.namaKegiatan}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {selKegiatan.kodeKegiatan} · Pagu: {formatRupiah(selKegiatan.totalPagu)}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs shrink-0">
+                        {selKegiatan.status}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="text-xs shrink-0">
-                      {selKegiatan.status}
-                    </Badge>
+                    {/* RAK info */}
+                    {rakBulanIni > 0 ? (
+                      <div className={cn(
+                        "rounded-md px-3 py-2 text-xs flex items-start gap-2",
+                        rakMelebihi
+                          ? "bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800"
+                          : "bg-muted/40 border border-border"
+                      )}>
+                        {rakMelebihi && <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />}
+                        <div className="space-y-0.5 w-full">
+                          <p className="font-semibold text-muted-foreground">
+                            RAK {new Date(tanggal).toLocaleString("id-ID", { month: "long" })}
+                          </p>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Alokasi DPA bulan ini</span>
+                            <span className="font-medium">{formatRupiah(rakBulanIni)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Sisa setelah SPP lain</span>
+                            <span className={cn("font-medium", sisaRAK < 0 ? "text-destructive" : "text-primary")}>
+                              {formatRupiah(sisaRAK)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-md bg-muted/20 border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+                        DPA bulan {new Date(tanggal).toLocaleString("id-ID", { month: "long" })} belum diisi untuk kegiatan ini.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -641,35 +706,91 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
                 {rincianList.length > 0 && (
                   <div className="flex justify-between items-center pt-1 px-1 font-semibold text-sm border-t">
                     <span>Total SPP</span>
-                    <span className="text-teal-600">{formatRupiah(totalJumlah)}</span>
+                    <span className="text-primary">{formatRupiah(totalJumlah)}</span>
                   </div>
                 )}
               </div>
 
-              {/* Tombol aksi */}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => { resetForm(); onClose(); }}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1"
-                  disabled={!bisaSubmit || addSPP.isPending}
-                  onClick={() => setKonfirmOpen(true)}
-                >
-                  Simpan SPP
-                </Button>
-              </div>
-
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Footer tombol */}
+          <div className="shrink-0 border-t px-4 py-3 flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => { resetForm(); onClose(); }}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              disabled={!bisaSubmit || addSPP.isPending}
+              onClick={handleClickSimpan}
+            >
+              Simpan SPP
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Dialog warning RAK */}
+      <AlertDialog open={rakWarnOpen} onOpenChange={setRakWarnOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Peringatan: Melebihi RAK Bulan Ini
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Total SPP ini <strong className="text-foreground">{formatRupiah(totalJumlah)}</strong> melebihi sisa alokasi DPA bulan{" "}
+                  <strong className="text-foreground">
+                    {new Date(tanggal).toLocaleString("id-ID", { month: "long" })}
+                  </strong>{" "}
+                  untuk kegiatan ini.
+                </p>
+                <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Alokasi DPA bulan ini</span>
+                    <span className="font-semibold">{formatRupiah(rakBulanIni)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Sudah dipakai SPP lain</span>
+                    <span className="font-semibold">{formatRupiah(totalSPPTanpaEdit)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-amber-200 pt-1">
+                    <span className="text-muted-foreground">Sisa RAK</span>
+                    <span className="font-semibold text-amber-600">{formatRupiah(sisaRAK)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total SPP ini</span>
+                    <span className="font-semibold text-destructive">{formatRupiah(totalJumlah)}</span>
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  Anda masih bisa menyimpan SPP ini, namun pastikan sudah berkoordinasi dengan bendahara.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal, Koreksi Dulu</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={() => {
+                setRakWarnOpen(false);
+                setKonfirmOpen(true);
+              }}
+            >
+              Lanjutkan Simpan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialog konfirmasi */}
       <AlertDialog open={konfirmOpen} onOpenChange={setKonfirmOpen}>

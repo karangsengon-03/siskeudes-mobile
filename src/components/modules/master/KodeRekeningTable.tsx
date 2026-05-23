@@ -76,7 +76,7 @@ function KodeRow({
         className={cn(
           "shrink-0 font-mono tabular-nums",
           LEVEL_INDENT[level],
-          level === 1 ? "text-teal-700 dark:text-teal-400 text-sm w-16" : "w-24 text-xs"
+          level === 1 ? "text-primary dark:text-primary text-sm w-16" : "w-24 text-xs"
         )}
       >
         {kode}
@@ -87,7 +87,7 @@ function KodeRow({
 
       {/* Badge custom */}
       {isCustom && (
-        <Badge variant="outline" className="text-[10px] shrink-0 border-teal-500 text-teal-600">
+        <Badge variant="outline" className="text-[10px] shrink-0 border-primary text-primary">
           Custom
         </Badge>
       )}
@@ -162,7 +162,7 @@ export default function KodeRekeningTable() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Database className="h-4 w-4 text-teal-600" />
+              <Database className="h-4 w-4 text-primary" />
               Kode Rekening Permendagri 20/2018
             </CardTitle>
             <CardDescription className="text-xs mt-1">
@@ -206,7 +206,7 @@ export default function KodeRekeningTable() {
         </div>
 
         {/* Rows */}
-        <div className="max-height: 520px] overflow-y-auto">
+        <div className="max-h-[520px] overflow-y-auto">
           {visible.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               Tidak ditemukan kode rekening "{search}"

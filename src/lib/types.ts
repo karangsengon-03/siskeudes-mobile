@@ -235,6 +235,12 @@ export interface MutasiKasItem {
 
 export type JenisPembayaranPajak = "tunai" | "bank";
 
+export interface PerKodePajak {
+  kodePajak: string;
+  namaPajak: string;
+  jumlah: number;
+}
+
 export interface PenyetoranPajakItem {
   id: string;
   nomorSetor: string;    // "PJKK/001/2026"
@@ -245,6 +251,7 @@ export interface PenyetoranPajakItem {
   jenisPembayaran: JenisPembayaranPajak;
   uraian: string;
   bukuPembantuPajakIds: string[]; // id dari bukuPembantuPajak yang ditandai sudahDisetor
+  perKodePajak?: PerKodePajak[];  // breakdown per kode pajak untuk BKU multi-entry
   inputOleh: string;
   createdAt: number;
 }

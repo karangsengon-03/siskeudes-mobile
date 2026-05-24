@@ -78,7 +78,7 @@ export function useAddPenyetoranPajak() {
         // Karena FormPenyetoranPajak sudah kirim per-kode, kita buat 1 entry per kode
       }
       // Gunakan perKodePajak jika ada, fallback ke satu entry
-      const perKode = (payload as any).perKodePajak as Array<{ kodePajak: string; namaPajak: string; jumlah: number }> | undefined;
+      const perKode = payload.perKodePajak;
       if (perKode && perKode.length > 0) {
         for (let i = 0; i < perKode.length; i++) {
           const item = perKode[i];

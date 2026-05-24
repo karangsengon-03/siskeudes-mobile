@@ -261,6 +261,10 @@ export interface BKUItem {
   sppId?: string;
   spjId?: string;
   penerimaanId?: string;
+  // Media pembayaran untuk SPP, sisa panjar, titipan pajak (bank | tunai)
+  mediaPembayaran?: "tunai" | "bank";
+  // Jenis pembayaran untuk mutasi kas dan penyetoran pajak (bank | tunai)
+  jenisPembayaran?: "tunai" | "bank";
   inputOleh: string;
   createdAt: number;
 }

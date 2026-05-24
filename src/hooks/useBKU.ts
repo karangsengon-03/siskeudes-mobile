@@ -60,7 +60,7 @@ export function useSaldoBank() {
   for (const b of bkuAll) {
     // Saldo awal kas bank
     if (b.jenisRef === "saldo_awal") {
-      const media = (b as any).mediaPembayaran ?? "bank";
+      const media = b.mediaPembayaran ?? "bank";
       if (media === "bank") {
         saldo += b.penerimaan;
       }
@@ -71,7 +71,7 @@ export function useSaldoBank() {
     }
     // Mutasi kas: cek jenisPembayaran untuk arah yang benar
     if (b.jenisRef === "mutasi_kas") {
-      const jp = (b as any).jenisPembayaran ?? "bank";
+      const jp = b.jenisPembayaran ?? "bank";
       if (jp === "bank") {
         saldo -= b.pengeluaran;
         saldo += b.penerimaan;
@@ -79,35 +79,35 @@ export function useSaldoBank() {
     }
     // Keluar bank: SPP yang mediaPembayaran-nya "bank"
     if (b.jenisRef === "spp") {
-      const media = (b as any).mediaPembayaran ?? "bank";
+      const media = b.mediaPembayaran ?? "bank";
       if (media === "bank") {
         saldo -= b.pengeluaran;
       }
     }
     // Sisa panjar kembali ke bank jika SPP asal pakai bank
     if (b.jenisRef === "spj_sisa_panjar") {
-      const media = (b as any).mediaPembayaran ?? "tunai";
+      const media = b.mediaPembayaran ?? "tunai";
       if (media === "bank") {
         saldo += b.penerimaan;
       }
     }
     // Titipan pajak dari SPJ via bank
     if (b.jenisRef === "spj_titipan_pajak") {
-      const media = (b as any).mediaPembayaran ?? "bank";
+      const media = b.mediaPembayaran ?? "bank";
       if (media === "bank") {
         saldo += b.penerimaan;
       }
     }
     // Keluar bank: penyetoran pajak via bank
     if (b.jenisRef === "penyetoran_pajak") {
-      const media = (b as any).jenisPembayaran ?? "bank";
+      const media = b.jenisPembayaran ?? "bank";
       if (media === "bank") {
         saldo -= b.pengeluaran;
       }
     }
     // Keluar bank: penyetoran hutang pajak saldo awal via bank
     if (b.jenisRef === "penyetoran_hutang_pajak") {
-      const media = (b as any).jenisPembayaran ?? "tunai";
+      const media = b.jenisPembayaran ?? "tunai";
       if (media === "bank") {
         saldo -= b.pengeluaran;
       }
@@ -122,7 +122,7 @@ export function useSaldoTunai() {
   for (const b of bkuAll) {
     // Saldo awal kas tunai
     if (b.jenisRef === "saldo_awal") {
-      const media = (b as any).mediaPembayaran ?? "bank";
+      const media = b.mediaPembayaran ?? "bank";
       if (media === "tunai") {
         saldo += b.penerimaan;
       }
@@ -133,7 +133,7 @@ export function useSaldoTunai() {
     }
     // Mutasi kas: cek jenisPembayaran untuk arah yang benar
     if (b.jenisRef === "mutasi_kas") {
-      const jp = (b as any).jenisPembayaran ?? "bank";
+      const jp = b.jenisPembayaran ?? "bank";
       if (jp === "tunai") {
         saldo += b.penerimaan;
         saldo -= b.pengeluaran;
@@ -141,35 +141,35 @@ export function useSaldoTunai() {
     }
     // Sisa panjar kembali ke tunai jika SPP asal pakai tunai
     if (b.jenisRef === "spj_sisa_panjar") {
-      const media = (b as any).mediaPembayaran ?? "tunai";
+      const media = b.mediaPembayaran ?? "tunai";
       if (media === "tunai") {
         saldo += b.penerimaan;
       }
     }
     // Keluar tunai: SPP yang mediaPembayaran-nya "tunai"
     if (b.jenisRef === "spp") {
-      const media = (b as any).mediaPembayaran ?? "bank";
+      const media = b.mediaPembayaran ?? "bank";
       if (media === "tunai") {
         saldo -= b.pengeluaran;
       }
     }
     // Titipan pajak dari SPJ via tunai
     if (b.jenisRef === "spj_titipan_pajak") {
-      const media = (b as any).mediaPembayaran ?? "bank";
+      const media = b.mediaPembayaran ?? "bank";
       if (media === "tunai") {
         saldo += b.penerimaan;
       }
     }
     // Keluar tunai: penyetoran pajak via tunai
     if (b.jenisRef === "penyetoran_pajak") {
-      const media = (b as any).jenisPembayaran ?? "bank";
+      const media = b.jenisPembayaran ?? "bank";
       if (media === "tunai") {
         saldo -= b.pengeluaran;
       }
     }
     // Keluar tunai: penyetoran hutang pajak saldo awal via tunai
     if (b.jenisRef === "penyetoran_hutang_pajak") {
-      const media = (b as any).jenisPembayaran ?? "tunai";
+      const media = b.jenisPembayaran ?? "tunai";
       if (media === "tunai") {
         saldo -= b.pengeluaran;
       }

@@ -47,9 +47,9 @@ type BukuMode = "bank" | "tunai";
 function isRelevant(item: BKUItem, mode: BukuMode): boolean {
   if (mode === "bank") {
     if (item.jenisRef === "mutasi_kas" && item.penerimaan > 0) return false;
-    if (item.jenisRef === "spp" && (item as any).mediaPembayaran === "tunai") return false;
-    if (item.jenisRef === "penyetoran_pajak" && (item as any).jenisPembayaran === "tunai") return false;
-    if (item.jenisRef === "spj_titipan_pajak" && (item as any).mediaPembayaran !== "bank") return false;
+    if (item.jenisRef === "spp" && item.mediaPembayaran === "tunai") return false;
+    if (item.jenisRef === "penyetoran_pajak" && item.jenisPembayaran === "tunai") return false;
+    if (item.jenisRef === "spj_titipan_pajak" && item.mediaPembayaran !== "bank") return false;
     return (
       item.jenisRef === "penerimaan_bank" ||
       item.jenisRef === "mutasi_kas" ||
@@ -59,9 +59,9 @@ function isRelevant(item: BKUItem, mode: BukuMode): boolean {
     );
   } else {
     if (item.jenisRef === "mutasi_kas" && item.pengeluaran > 0) return false;
-    if (item.jenisRef === "spp" && (item as any).mediaPembayaran !== "tunai") return false;
-    if (item.jenisRef === "penyetoran_pajak" && (item as any).jenisPembayaran !== "tunai") return false;
-    if (item.jenisRef === "spj_titipan_pajak" && (item as any).mediaPembayaran !== "tunai") return false;
+    if (item.jenisRef === "spp" && item.mediaPembayaran !== "tunai") return false;
+    if (item.jenisRef === "penyetoran_pajak" && item.jenisPembayaran !== "tunai") return false;
+    if (item.jenisRef === "spj_titipan_pajak" && item.mediaPembayaran !== "tunai") return false;
     return (
       item.jenisRef === "penerimaan_tunai" ||
       item.jenisRef === "mutasi_kas" ||

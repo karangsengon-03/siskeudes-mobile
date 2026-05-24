@@ -8,6 +8,12 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "overrides": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3"
+  },
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
     "class-variance-authority": "^0.7.1",

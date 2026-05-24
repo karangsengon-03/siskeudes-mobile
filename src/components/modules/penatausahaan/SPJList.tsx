@@ -14,7 +14,7 @@ import { useSPJ, useDeleteSPJ, useEditSPJ } from "@/hooks/useSPJ";
 import { useSPP } from "@/hooks/useSPP";
 import { FormSPJ } from "./FormSPJ";
 import { usePenyetoranPajak } from "@/hooks/usePenyetoranPajak";
-import { useBukuPembantuPajak } from "@/hooks/useBukuPembantu";
+import { useBukuPajak } from "@/hooks/useBukuPembantu";
 import { useDataDesa } from "@/hooks/useMaster";
 import { formatRupiah } from "@/lib/utils";
 import { SPJItem } from "@/lib/types";
@@ -63,7 +63,7 @@ export function SPJList() {
   const { data: penyetoranList = [] } = usePenyetoranPajak();
   // BukuPembantuPajak dibutuhkan untuk mencari apakah suatu SPJ masih
   // punya pajak yang sudah disetor (terhubung lewat nomorSPJ)
-  const { data: bukuPajakList = [] } = useBukuPembantuPajak();
+  const { data: bukuPajakList = [] } = useBukuPajak();
   const { data: dataDesa } = useDataDesa();
   const tahun = useAppStore((s) => s.tahunAnggaran);
 

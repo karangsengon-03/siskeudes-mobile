@@ -55,12 +55,11 @@ export function MutasiKasList() {
     return l;
   }, [list, filterBulan, filterSearch]);
 
-  // list sorted ascending by createdAt — terbawah = index terakhir
   const adaSPPDicairkan = sppList.some((s) => s.status === "dicairkan");
 
   function handleAksi(item: MutasiKasItem, aksi: "edit" | "hapus") {
     if (adaSPPDicairkan) {
-      setErrorMsg("Tidak bisa edit/hapus Mutasi Kas karena masih ada SPP yang sudah dicairkan. Hapus SPJ → SPP terkait dulu.");
+      setErrorMsg("Tidak bisa edit/hapus Mutasi Kas karena masih ada SPP yang sudah dicairkan. Hapus SPJ dan SPP terkait dulu.");
       return;
     }
     if (aksi === "hapus") {
@@ -90,7 +89,13 @@ export function MutasiKasList() {
     }
   }
 
-  if (isLoading) return <div className="flex items-center justify-center h-32 text-muted-foreground"><Loader2 className="animate-spin mr-2 h-4 w-4" /> Memuat...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-32 text-muted-foreground">
+        <Loader2 className="animate-spin mr-2 h-4 w-4" /> Memuat...
+      </div>
+    );
+  }
 
   return (
     <>
@@ -134,60 +139,106 @@ export function MutasiKasList() {
                 </div>
               )}
               {filteredList.map((m) => (
-              <div key={m.id} className="px-4 py-3 flex items-start gap-3">
-                <div className="shrink-0 mt-0.5"><ArrowRightLeft className="h-4 w-4 text-primary" /></div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-mono text-muted-foreground">{m.nomorMutasi}</span>
-                    <div className="flex items-center gap-1">
-                      <Badge variant="outline" className="text-xs">
-                        {m.jenis === "tunai_ke_bank" ? "Tunai → Bank" : "Bank → Tunai"}
-                      </Badge>
-                      <>
-                        <Button variant="ghost" size="icon" aria-label="Ubah mutasi kas" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => handleAksi(m, "edit")>
+                <div key={m.id} className="px-4 py-3 flex items-start gap-3">
+                  <div className="shrink-0 mt-0.5">
+                    <ArrowRightLeft className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-mono text-muted-foreground">{m.nomorMutasi}</span>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="text-xs">
+                          {m.jenis === "tunai_ke_bank" ? "Tunai → Bank" : "Bank → Tunai"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Ubah mutasi kas"
+                          className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                          onClick={() => handleAksi(m, "edit")}
+                        >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" aria-label="Hapus mutasi kas" className="h-9 w-9 text-destructive hover:text-destructive" onClick={() => handleAksi(m, "hapus")>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Hapus mutasi kas"
+                          className="h-9 w-9 text-destructive hover:text-destructive"
+                          onClick={() => handleAksi(m, "hapus")}
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
-                      </>
+                      </div>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(m.tanggal), "d MMM yyyy", { locale: localeId })}
+                    </p>
+                    <p className="text-sm font-medium truncate">{m.uraian}</p>
+                    <p className="text-sm font-semibold text-primary">{formatRupiah(m.jumlah)}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">{format(new Date(m.tanggal), "d MMM yyyy", { locale: localeId })}</p>
-                  <p className="text-sm font-medium truncate">{m.uraian}</p>
-                  <p className="text-sm font-semibold text-primary">{formatRupiah(m.jumlah)}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+              ))}
+            </div>
+          </ScrollArea>
         </>
       )}
 
       <AlertDialog open={!!errorMsg} onOpenChange={(v) => !v && setErrorMsg(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Tidak bisa dilakukan</AlertDialogTitle><AlertDialogDescription>{errorMsg}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogAction onClick={() => setErrorMsg(null)}>Mengerti</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tidak bisa dilakukan</AlertDialogTitle>
+            <AlertDialogDescription>{errorMsg}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorMsg(null)}>Mengerti</AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={!!targetHapus} onOpenChange={(v) => { if (!v) setTargetHapus(null); }}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Hapus mutasi kas ini?</AlertDialogTitle><AlertDialogDescription><strong>{targetHapus?.nomorMutasi}</strong> — {targetHapus?.uraian} senilai <strong>{formatRupiah(targetHapus?.jumlah ?? 0)}</strong> akan dihapus beserta entri BKU terkait.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus mutasi kas ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{targetHapus?.nomorMutasi}</strong> — {targetHapus?.uraian} senilai{" "}
+              <strong>{formatRupiah(targetHapus?.jumlah ?? 0)}</strong> akan dihapus beserta entri BKU terkait.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { if (!targetHapus) return; await hapus.mutateAsync(targetHapus.id); toast.success("Mutasi kas dihapus"); setTargetHapus(null); }}>Hapus</AlertDialogAction>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!targetHapus) return;
+                await hapus.mutateAsync(targetHapus.id);
+                toast.success("Mutasi kas dihapus");
+                setTargetHapus(null);
+              }}
+            >
+              Hapus
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <Dialog open={!!targetEdit} onOpenChange={(v) => { if (!v) setTargetEdit(null); }}>
         <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Mutasi Kas</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Edit Mutasi Kas</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3 pt-2">
-            <div className="space-y-1"><Label className="text-xs">Tanggal</Label><Input type="date" value={editTanggal} onChange={(e) => setEditTanggal(e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Keterangan</Label><Input value={editUraian} onChange={(e) => setEditUraian(e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Jumlah (Rp)</Label><Input type="number" min={0} value={editJumlah} onChange={(e) => setEditJumlah(e.target.value)} /></div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tanggal</Label>
+              <Input type="date" value={editTanggal} onChange={(e) => setEditTanggal(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Keterangan</Label>
+              <Input value={editUraian} onChange={(e) => setEditUraian(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Jumlah (Rp)</Label>
+              <Input type="number" min={0} value={editJumlah} onChange={(e) => setEditJumlah(e.target.value)} />
+            </div>
             <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setTargetEdit(null)}>Batal</Button>
               <Button className="flex-1" onClick={handleSimpanEdit} disabled={hapus.isPending || tambah.isPending}>Simpan</Button>

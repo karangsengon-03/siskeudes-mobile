@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePenerimaan, useDeletePenerimaan, useAddPenerimaan } from "@/hooks/usePenerimaan";
 import { useMutasiKas } from "@/hooks/useMutasiKas";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, parseDecimalId } from "@/lib/utils";
 import { JenisPenerimaan, PenerimaanItem, SumberDana } from "@/lib/types";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -87,7 +87,7 @@ export function PenerimaanList() {
       jenisPenerimaan: editJenis,
       sumberDana: editSumber,
       uraian: editUraian,
-      jumlah: parseFloat(editJumlah),
+      jumlah: parseDecimalId(editJumlah),
     });
     toast.success("Penerimaan diperbarui");
     setTargetEdit(null);

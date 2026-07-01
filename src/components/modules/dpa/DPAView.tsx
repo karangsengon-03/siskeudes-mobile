@@ -38,7 +38,7 @@ import { useAPBDes } from "@/hooks/useAPBDes";
 import { useDPA, useSaveDPABulan, useUpdateDPAMeta, useResetDPAKegiatan } from "@/hooks/useDPA";
 import { useAppStore } from "@/store/appStore";
 import { KegiatanAPBDes, SumberDana } from "@/lib/types";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, parseDecimalId } from "@/lib/utils";
 
 const NAMA_BULAN = [
   "", // index 0 kosong agar index 1=Januari
@@ -117,7 +117,7 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
   const handleBlurBulan = async (bulanKe: number) => {
     if (status === "dikonfirmasi") return;
     const raw = inputBulan[bulanKe];
-    const jumlah = parseFloat(raw) || 0;
+    const jumlah = parseDecimalId(raw);
     const existing = bulanData[bulanKe]?.jumlah ?? 0;
     if (jumlah === existing) return;
     try {
@@ -268,7 +268,7 @@ function DetailPanel({ kegiatan }: { kegiatan: KegiatanItem }) {
           </p>
           <div className="space-y-1.5">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((bulanKe) => {
-              const jumlahBulan = parseFloat(inputBulan[bulanKe]) || 0;
+              const jumlahBulan = parseDecimalId(inputBulan[bulanKe]);
               const adaIsi = jumlahBulan > 0;
               return (
                 <div

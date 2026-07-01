@@ -268,6 +268,7 @@ export interface BKUItem {
   sppId?: string;
   spjId?: string;
   penerimaanId?: string;
+  penyetoranPajakId?: string; // id PenyetoranPajakItem terkait (untuk delete cascade)
   // Media pembayaran untuk SPP, sisa panjar, titipan pajak (bank | tunai)
   mediaPembayaran?: "tunai" | "bank";
   // Jenis pembayaran untuk mutasi kas dan penyetoran pajak (bank | tunai)

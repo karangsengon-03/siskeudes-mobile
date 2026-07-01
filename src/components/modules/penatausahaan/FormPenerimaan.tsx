@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAddPenerimaan } from "@/hooks/usePenerimaan";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, parseDecimalId } from "@/lib/utils";
 import { JenisPenerimaan, SumberDana } from "@/lib/types";
 import { toast } from "sonner";
 import { Banknote, Wallet } from "lucide-react";
@@ -39,7 +39,7 @@ export function FormPenerimaan({ open, onClose }: FormPenerimaanProps) {
     setJumlah("");
   }
 
-  const bisaSubmit = uraian.trim() !== "" && parseFloat(jumlah) > 0;
+  const bisaSubmit = uraian.trim() !== "" && parseDecimalId(jumlah) > 0;
 
   async function handleKonfirmasi() {
     setKonfirmOpen(false);
@@ -49,7 +49,7 @@ export function FormPenerimaan({ open, onClose }: FormPenerimaanProps) {
         jenisPenerimaan: jenis,
         sumberDana,
         uraian,
-        jumlah: parseFloat(jumlah),
+        jumlah: parseDecimalId(jumlah),
       });
       toast.success("Penerimaan berhasil disimpan & masuk BKU");
       reset();
@@ -118,7 +118,7 @@ export function FormPenerimaan({ open, onClose }: FormPenerimaanProps) {
             <div className="space-y-1">
               <Label className="text-xs">Jumlah (Rp)</Label>
               <Input type="number" min={0} placeholder="0" value={jumlah} onChange={(e) => setJumlah(e.target.value)} />
-              {parseFloat(jumlah) > 0 && <p className="text-xs text-primary font-medium">{formatRupiah(parseFloat(jumlah))}</p>}
+              {parseDecimalId(jumlah) > 0 && <p className="text-xs text-primary font-medium">{formatRupiah(parseDecimalId(jumlah))}</p>}
             </div>
 
           </div>
@@ -138,7 +138,7 @@ export function FormPenerimaan({ open, onClose }: FormPenerimaanProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Penerimaan</AlertDialogTitle>
             <AlertDialogDescription>
-              Simpan penerimaan <strong>{jenis === "tunai" ? "Kas Tunai" : "Bank"}</strong> — {uraian} senilai <strong>{formatRupiah(parseFloat(jumlah) || 0)}</strong>? Data akan otomatis masuk ke BKU.
+              Simpan penerimaan <strong>{jenis === "tunai" ? "Kas Tunai" : "Bank"}</strong> — {uraian} senilai <strong>{formatRupiah(parseDecimalId(jumlah))}</strong>? Data akan otomatis masuk ke BKU.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

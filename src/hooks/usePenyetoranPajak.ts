@@ -30,7 +30,18 @@ export function usePenyetoranPajak() {
         onValue(r, (snap) => {
           if (!snap.exists()) return resolve([]);
           const raw = snap.val() as Record<string, Omit<PenyetoranPajakItem, "id">>;
-          const list = Object.entries(raw).map(([id, v]) => ({ id, ...v }));
+          const list = Object.entries(raw).map(([id, v]) => ({
+            id,
+            ...v,
+            // Firebase menyimpan array kosong [] sebagai null — safe-guard wajib
+            bukuPembantuPajakIds: Array.isArray(v.bukuPembantuPajakIds)
+              ? v.bukuPembantuPajakIds
+              : [],
+            uraian: v.uraian ?? "",
+            namaPajak: v.namaPajak ?? "",
+            kodePajak: v.kodePajak ?? "",
+            nomorSetor: v.nomorSetor ?? "",
+          }));
           list.sort((a, b) => a.createdAt - b.createdAt);
           resolve(list);
         }, { onlyOnce: true });
@@ -139,13 +150,23 @@ export function useDeletePenyetoranPajak() {
           nomorSetor: null,
         });
       }
-      // Hapus BKU terkait
+      // Ambil nomorSetor dari penyetoranPajak untuk hapus BKU terkait (hutang pajak tidak set penyetoranPajakId)
+      const setorSnap = await get(ref(database, `siskeudesOnline/tahun/${tahun}/penyetoranPajak/${id}`));
+      const nomorSetorTarget: string = setorSnap.exists()
+        ? (setorSnap.val() as { nomorSetor?: string }).nomorSetor ?? ""
+        : "";
+      // Hapus BKU terkait (cek penyetoranPajakId ATAU nomorRef untuk hutang pajak)
       const bkuRef = ref(database, `siskeudesOnline/tahun/${tahun}/bku`);
       const snap = await get(bkuRef);
       if (snap.exists()) {
-        const raw = snap.val() as Record<string, { penyetoranPajakId?: string }>;
+        const raw = snap.val() as Record<string, { penyetoranPajakId?: string; nomorRef?: string; jenisRef?: string }>;
         for (const [bkuId, bkuItem] of Object.entries(raw)) {
-          if (bkuItem.penyetoranPajakId === id) {
+          const byId = bkuItem.penyetoranPajakId === id;
+          const byNomorRef =
+            nomorSetorTarget !== "" &&
+            bkuItem.nomorRef === nomorSetorTarget &&
+            (bkuItem.jenisRef === "penyetoran_pajak" || bkuItem.jenisRef === "penyetoran_hutang_pajak");
+          if (byId || byNomorRef) {
             await remove(ref(database, `siskeudesOnline/tahun/${tahun}/bku/${bkuId}`));
           }
         }

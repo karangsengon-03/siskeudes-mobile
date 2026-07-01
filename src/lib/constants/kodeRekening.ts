@@ -1,4 +1,5 @@
 // Kode Rekening Permendagri 20/2018 — 4 Level
+// Update: Siskeudes Desktop V2.0.9 / 2026
 // Kelompok → Jenis → Obyek → Rincian Obyek
 // Level 4 (Rincian Obyek) yang digunakan saat input RAB/DPA
 
@@ -20,11 +21,13 @@ export const KODE_REKENING: KodeRekening[] = [
   { kode: "4.1.1", uraian: "Hasil Usaha Desa", level: 3, parentKode: "4.1" },
   { kode: "4.1.1.01", uraian: "Hasil BUMDes", level: 4, parentKode: "4.1.1" },
   { kode: "4.1.1.02", uraian: "Tanah Kas Desa", level: 4, parentKode: "4.1.1" },
+  { kode: "4.1.1.90", uraian: "Lain-lain Hasil Usaha Desa", level: 4, parentKode: "4.1.1" },
   { kode: "4.1.2", uraian: "Hasil Aset Desa", level: 3, parentKode: "4.1" },
   { kode: "4.1.2.01", uraian: "Tambatan Perahu", level: 4, parentKode: "4.1.2" },
   { kode: "4.1.2.02", uraian: "Pasar Desa", level: 4, parentKode: "4.1.2" },
   { kode: "4.1.2.03", uraian: "Tempat Pemandian Umum", level: 4, parentKode: "4.1.2" },
   { kode: "4.1.2.04", uraian: "Jaringan Irigasi Desa", level: 4, parentKode: "4.1.2" },
+  { kode: "4.1.2.90", uraian: "Lain-lain Hasil Aset Desa", level: 4, parentKode: "4.1.2" },
   { kode: "4.1.3", uraian: "Swadaya, Partisipasi dan Gotong Royong", level: 3, parentKode: "4.1" },
   { kode: "4.1.3.01", uraian: "Swadaya Masyarakat", level: 4, parentKode: "4.1.3" },
   { kode: "4.1.4", uraian: "Lain-lain Pendapatan Asli Desa yang Sah", level: 3, parentKode: "4.1" },
@@ -78,12 +81,15 @@ export const KODE_REKENING: KodeRekening[] = [
   { kode: "5.1.1.04", uraian: "Operasional Pemerintah Desa", level: 4, parentKode: "5.1.1" },
   { kode: "5.1.1.05", uraian: "Tunjangan PKPKD dan PPKD", level: 4, parentKode: "5.1.1" },
   { kode: "5.1.1.06", uraian: "Tunjangan dan Operasional BPD", level: 4, parentKode: "5.1.1" },
+  { kode: "5.1.1.07", uraian: "Penyediaan Insentif/Operasional RT/RW", level: 4, parentKode: "5.1.1" },
+  { kode: "5.1.1.08", uraian: "Penyediaan Operasional Pemerintah Desa (dari Dana Desa)", level: 4, parentKode: "5.1.1" },
   { kode: "5.1.1.90", uraian: "Lain-lain Sub-Bidang ini", level: 4, parentKode: "5.1.1" },
 
   // 5.1.2 Sarana dan Prasarana Pemerintahan Desa
   { kode: "5.1.2", uraian: "Sub-Bidang Sarana dan Prasarana Pemerintahan Desa", level: 3, parentKode: "5.1" },
-  { kode: "5.1.2.01", uraian: "Penyertaan Modal Desa / Penyertaan Modal BUMDes", level: 4, parentKode: "5.1.2" },
-  { kode: "5.1.2.02", uraian: "Pembangunan/Rehabilitasi/Peningkatan Gedung/Prasarana Kantor Desa", level: 4, parentKode: "5.1.2" },
+  { kode: "5.1.2.01", uraian: "Penyediaan Sarana (Aset Tetap) Perkantoran/Pemerintahan", level: 4, parentKode: "5.1.2" },
+  { kode: "5.1.2.02", uraian: "Pemeliharaan Gedung/Prasarana Kantor Desa", level: 4, parentKode: "5.1.2" },
+  { kode: "5.1.2.03", uraian: "Pembangunan/Rehabilitasi/Peningkatan Gedung/Prasarana Kantor Desa", level: 4, parentKode: "5.1.2" },
   { kode: "5.1.2.90", uraian: "Lain-lain Sub-Bidang ini", level: 4, parentKode: "5.1.2" },
 
   // 5.1.3 Administrasi Kependudukan, Pencatatan Sipil, Statistik dan Kearsipan

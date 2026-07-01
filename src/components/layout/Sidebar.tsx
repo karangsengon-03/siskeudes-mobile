@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { APP_VERSION } from "@/lib/constants/version";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -61,7 +62,7 @@ export function Sidebar() {
       <div className="flex items-center gap-2 px-4 py-5 border-b">
         <Landmark className="h-6 w-6 text-primary shrink-0" />
         <div className="leading-tight">
-          <p className="text-sm font-semibold">SisKeuDes <span className="text-xs font-normal text-muted-foreground">v1.0</span></p>
+          <p className="text-sm font-semibold">SisKeuDes <span className="text-xs font-normal text-muted-foreground">v{APP_VERSION}</span></p>
           <p className="text-xs text-muted-foreground">Karang Sengon · {tahunAnggaran}</p>
         </div>
       </div>

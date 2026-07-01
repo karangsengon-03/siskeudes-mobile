@@ -30,7 +30,7 @@ import { BIDANG_KEGIATAN } from "@/lib/constants/bidangKegiatan";
 import { useSaveKegiatan } from "@/hooks/useAPBDes";
 import { usePerencanaan, usePerencanaanMeta } from "@/hooks/usePerencanaan";
 import type { KegiatanAPBDes, SumberDana, APBDesVariant } from "@/lib/types";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, parseDecimalId } from "@/lib/utils";
 
 // Kode rekening belanja level 4 (rincian obyek)
 // Kode rekening belanja level 4 — Permendagri 20/2018 (lengkap)
@@ -248,7 +248,7 @@ export function FormKegiatan({ open, onClose, editData, variant = "awal", readOn
 
   function calcTotalRekening(idx: number) {
     const items = watchedRekeningList[idx]?.subItems ?? [];
-    return items.reduce((acc, s) => acc + (Number(s.volume) || 0) * (Number(s.hargaSatuan) || 0), 0);
+    return items.reduce((acc, s) => acc + parseDecimalId(s.volume) * parseDecimalId(s.hargaSatuan), 0);
   }
 
   function calcGrandTotal() {
@@ -301,13 +301,13 @@ export function FormKegiatan({ open, onClose, editData, variant = "awal", readOn
           subItems: r.subItems.map((s) => ({
             id: s.id,
             uraian: s.uraian,
-            volume: Number(s.volume),
+            volume: parseDecimalId(s.volume),
             satuan: s.satuan,
-            hargaSatuan: Number(s.hargaSatuan),
-            jumlah: Number(s.volume) * Number(s.hargaSatuan),
+            hargaSatuan: parseDecimalId(s.hargaSatuan),
+            jumlah: parseDecimalId(s.volume) * parseDecimalId(s.hargaSatuan),
           })),
           totalPagu: r.subItems.reduce(
-            (acc, s) => acc + Number(s.volume) * Number(s.hargaSatuan), 0
+            (acc, s) => acc + parseDecimalId(s.volume) * parseDecimalId(s.hargaSatuan), 0
           ),
         })),
         totalPagu: 0, // recalculated in hook
@@ -634,8 +634,8 @@ function SubItemsField({
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground font-medium">Rincian RAB:</p>
       {fields.map((sf, sIdx) => {
-        const vol = Number(watchedRekeningList[rIdx]?.subItems?.[sIdx]?.volume ?? 0);
-        const harga = Number(watchedRekeningList[rIdx]?.subItems?.[sIdx]?.hargaSatuan ?? 0);
+        const vol = parseDecimalId(watchedRekeningList[rIdx]?.subItems?.[sIdx]?.volume ?? 0);
+        const harga = parseDecimalId(watchedRekeningList[rIdx]?.subItems?.[sIdx]?.hargaSatuan ?? 0);
         const jumlah = vol * harga;
 
         return (

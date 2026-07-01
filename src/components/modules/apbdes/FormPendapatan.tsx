@@ -34,7 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useSavePendapatan, useDeletePendapatan } from "@/hooks/useAPBDes";
 import type { PendapatanItem, SumberDana, APBDesVariant } from "@/lib/types";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, parseDecimalId } from "@/lib/utils";
 
 // Daftar kode rekening pendapatan (level 3) — Permendagri 20/2018
 const REKENING_PENDAPATAN = [
@@ -104,11 +104,16 @@ export function FormPendapatan({ items, variant = "awal", readOnly = false }: Pr
 
   async function onSubmit(data: FormValues) {
     try {
+      const anggaranNum = parseDecimalId(data.anggaran);
+      if (anggaranNum < 0) {
+        toast.error("Nilai anggaran tidak valid");
+        return;
+      }
       await saveMutation.mutateAsync({
         id: editItem?.id,
         kodeRekening: data.kodeRekening,
         namaRekening: data.namaRekening,
-        anggaran: Number(data.anggaran),
+        anggaran: anggaranNum,
         sumberDana: data.sumberDana,
       });
       toast.success(editItem ? "Pendapatan diperbarui" : "Pendapatan ditambahkan");
@@ -227,7 +232,7 @@ export function FormPendapatan({ items, variant = "awal", readOnly = false }: Pr
             <div className="space-y-1.5">
               <Label>Anggaran (Rp)</Label>
               <Input
-                {...register("anggaran", { required: true, min: 1 })}
+                {...register("anggaran", { required: true, min: 0 })}
                 type="number"
                 min={0}
                 placeholder="0"

@@ -28,7 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAPBDes } from "@/hooks/useAPBDes";
 import { useAddSPP, useRealisasiRekening, useSPP } from "@/hooks/useSPP";
 import { useDPA } from "@/hooks/useDPA";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, parseDecimalId } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
   JenisSPP,
@@ -110,7 +110,7 @@ function RincianRowWithRealisasi({
 }) {
   const realisasi = useRealisasiRekening(kegiatanId, rincian.kodeRekening);
   const [showPicker, setShowPicker] = useState(rincian.kodeRekening === "");
-  const jumlah = parseFloat(rincian.jumlah) || 0;
+  const jumlah = parseDecimalId(rincian.jumlah);
   const sisaPagu = rincian.pagu - realisasi;
   const melebihi = rincian.kodeRekening !== "" && jumlah > sisaPagu;
 
@@ -333,11 +333,11 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
   const usedKode = rincianList.map((r) => r.kodeRekening);
 
   const totalJumlah = rincianList.reduce(
-    (sum, r) => sum + (parseFloat(r.jumlah) || 0),
+    (sum, r) => sum + parseDecimalId(r.jumlah),
     0
   );
 
-  const adaMelebihi = rincianList.some((r) => parseFloat(r.jumlah) > r.pagu);
+  const adaMelebihi = rincianList.some((r) => parseDecimalId(r.jumlah) > r.pagu);
 
   function pilihBidang(b: BidangNode) {
     setSelBidang(b);
@@ -408,7 +408,7 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
     selKegiatan !== null &&
     uraian.trim() !== "" &&
     rincianList.length > 0 &&
-    rincianList.every((r) => r.kodeRekening !== "" && parseFloat(r.jumlah) > 0);
+    rincianList.every((r) => r.kodeRekening !== "" && parseDecimalId(r.jumlah) > 0);
 
   // Saat klik "Simpan SPP": cek RAK dulu, kalau melebihi tampilkan warning, jika tidak langsung konfirmasi
   function handleClickSimpan() {
@@ -429,7 +429,7 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
         id: r.id,
         kodeRekening: r.kodeRekening,
         namaRekening: r.namaRekening,
-        jumlah: parseFloat(r.jumlah),
+        jumlah: parseDecimalId(r.jumlah),
       };
     });
 
@@ -809,7 +809,7 @@ export function FormSPP({ open, onClose, editItem }: FormSPPProps) {
                       <span className="text-muted-foreground overflow-wrap: break-word">
                         {r.kodeRekening} {r.namaRekening}
                       </span>
-                      <span className="shrink-0">{formatRupiah(parseFloat(r.jumlah) || 0)}</span>
+                      <span className="shrink-0">{formatRupiah(parseDecimalId(r.jumlah))}</span>
                     </div>
                   ))}
                 </div>

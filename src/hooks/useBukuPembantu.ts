@@ -42,34 +42,62 @@ export interface BukuKasTunaiRow {
 }
 
 // ─── Helper: tentukan apakah BKU item relevan untuk mode bank/tunai ─
+// PENTING: Logika ini WAJIB konsisten dengan BKUView.tsx (Penatausahaan) dan
+// useSaldoBank/useSaldoTunai (useBKU.ts). Setiap jenisRef yang menyimpan
+// jenisPembayaran/mediaPembayaran HARUS dicek berdasarkan FIELD tersebut,
+// bukan ditebak dari nilai penerimaan/pengeluaran — karena satu transaksi
+// (mis. mutasi_kas) bisa menghasilkan 2 entri BKU dengan arah nilai yang
+// berbeda tergantung arah mutasi (bank_ke_tunai vs tunai_ke_bank).
 type BukuMode = "bank" | "tunai";
 
 function isRelevant(item: BKUItem, mode: BukuMode): boolean {
-  if (mode === "bank") {
-    if (item.jenisRef === "mutasi_kas" && item.penerimaan > 0) return false;
-    if (item.jenisRef === "spp" && item.mediaPembayaran === "tunai") return false;
-    if (item.jenisRef === "penyetoran_pajak" && item.jenisPembayaran === "tunai") return false;
-    if (item.jenisRef === "spj_titipan_pajak" && item.mediaPembayaran !== "bank") return false;
-    return (
-      item.jenisRef === "penerimaan_bank" ||
-      item.jenisRef === "mutasi_kas" ||
-      item.jenisRef === "spp" ||
-      item.jenisRef === "spj_titipan_pajak" ||
-      item.jenisRef === "penyetoran_pajak"
-    );
-  } else {
-    if (item.jenisRef === "mutasi_kas" && item.pengeluaran > 0) return false;
-    if (item.jenisRef === "spp" && item.mediaPembayaran !== "tunai") return false;
-    if (item.jenisRef === "penyetoran_pajak" && item.jenisPembayaran !== "tunai") return false;
-    if (item.jenisRef === "spj_titipan_pajak" && item.mediaPembayaran !== "tunai") return false;
-    return (
-      item.jenisRef === "penerimaan_tunai" ||
-      item.jenisRef === "mutasi_kas" ||
-      item.jenisRef === "spj_sisa_panjar" ||
-      item.jenisRef === "spj_titipan_pajak" ||
-      item.jenisRef === "spp" ||
-      item.jenisRef === "penyetoran_pajak"
-    );
+  const target = mode; // "bank" | "tunai"
+
+  switch (item.jenisRef) {
+    // Penerimaan langsung — selalu match satu sisi
+    case "penerimaan_bank":
+      return target === "bank";
+    case "penerimaan_tunai":
+      return target === "tunai";
+
+    // Saldo awal (SiLPA) — field mediaPembayaran SELALU eksplisit "bank"/"tunai"
+    case "saldo_awal":
+      return (item.mediaPembayaran ?? "bank") === target;
+
+    // Mutasi kas — setiap transaksi menulis 2 ENTRI TERPISAH, masing-masing
+    // dengan jenisPembayaran eksplisit menandakan SISI mana entri itu berlaku.
+    // WAJIB pakai field jenisPembayaran, BUKAN menebak dari nilai penerimaan/pengeluaran.
+    case "mutasi_kas":
+      return (item.jenisPembayaran ?? "bank") === target;
+
+    // SPP — keluar sesuai mediaPembayaran, default ke "bank" jika field kosong
+    case "spp":
+      return (item.mediaPembayaran ?? "bank") === target;
+
+    // Sisa panjar kembali ke kas sesuai mediaPembayaran SPP asal, default "tunai"
+    case "spj_sisa_panjar":
+      return (item.mediaPembayaran ?? "tunai") === target;
+
+    // Titipan pajak dari SPJ — dikembalikan ke saldo sesuai mediaPembayaran SPP, default "bank"
+    case "spj_titipan_pajak":
+      return (item.mediaPembayaran ?? "bank") === target;
+
+    // Penyetoran pajak SPJ ke kas negara — keluar sesuai jenisPembayaran, default "bank"
+    case "penyetoran_pajak":
+      return (item.jenisPembayaran ?? "bank") === target;
+
+    // Penyetoran hutang pajak saldo awal — keluar sesuai jenisPembayaran, default "bank"
+    case "penyetoran_hutang_pajak":
+      return (item.jenisPembayaran ?? "bank") === target;
+
+    // spj (baris penanda nilai 0) dan spj_pajak (informasional, nilainya sudah
+    // tercermin di spj_titipan_pajak) — tidak relevan untuk Buku Bank/Tunai manapun
+    case "spj":
+    case "spj_pajak":
+      return false;
+
+    default:
+      return false;
   }
 }
 

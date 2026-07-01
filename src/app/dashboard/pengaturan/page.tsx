@@ -13,6 +13,7 @@ import {
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/authStore";
+import { useAppStore } from "@/store/appStore";
 import type { UserProfile, UserRole } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { User, Users, Plus, Trash2, Info, ShieldCheck, Eye, EyeOff } from "lucide-react";
-
-const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026.04";
+import { APP_VERSION, APP_BUILD } from "@/lib/constants/version";
 
 const ALL_ROLES: UserRole[] = [
   "PKPKD (Kades)",
@@ -302,13 +301,14 @@ function ManajemenUserSection() {
 }
 
 function InfoVersiSection() {
+  const tahunAnggaran = useAppStore((s) => s.tahunAnggaran);
   const infos = [
     { label: "Aplikasi", value: "SisKeuDes Mobile" },
     { label: "Versi", value: `v${APP_VERSION} (Build ${APP_BUILD})` },
-    { label: "Framework", value: "Next.js 15 + TypeScript" },
+    { label: "Framework", value: "Next.js 16 + TypeScript" },
     { label: "Database", value: "Firebase Realtime Database" },
     { label: "Desa", value: "Karang Sengon, Klabang, Bondowoso" },
-    { label: "Tahun", value: "2026" },
+    { label: "Tahun Anggaran Aktif", value: tahunAnggaran },
   ];
   return (
     <div className="space-y-2">

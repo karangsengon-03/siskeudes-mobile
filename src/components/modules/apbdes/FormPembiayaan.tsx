@@ -33,7 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useSavePembiayaan, useDeletePembiayaan } from "@/hooks/useAPBDes";
 import type { PembiayaanItem, SumberDana, APBDesVariant } from "@/lib/types";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, parseDecimalId } from "@/lib/utils";
 
 const REKENING_PEMBIAYAAN = [
   { kode: "6.1.01", nama: "SiLPA Tahun Sebelumnya",                         jenis: "penerimaan" as const },
@@ -103,7 +103,7 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
         jenis: data.jenis,
         kodeRekening: data.kodeRekening,
         namaRekening: data.namaRekening,
-        anggaran: Number(data.anggaran),
+        anggaran: parseDecimalId(data.anggaran),
         ...(data.kodeRekening === "6.1.01" && data.sumberDana
           ? { sumberDana: data.sumberDana as SumberDana }
           : {}),
@@ -329,7 +329,7 @@ export function FormPembiayaan({ items, variant = "awal", readOnly = false }: Pr
               <div className="space-y-1.5">
                 <Label>Anggaran (Rp)</Label>
                 <Input
-                  {...register("anggaran", { required: true, min: 1 })}
+                  {...register("anggaran", { required: true, min: 0 })}
                   type="number"
                   inputMode="numeric"
                   min={0}

@@ -30,6 +30,10 @@ export function useDataLaporan(bulan?: number) {
   const { data: apbdesMeta, isLoading: loadingMeta } = useAPBDesMeta();
   const { data: dpaMap = {}, isLoading: loadingDPA } = useDPA();
   const { data: bkuAll = [], isLoading: loadingBKU } = useBKU(bulan);
+  // BKU tanpa filter bulan — dibutuhkan untuk saldo akhir kumulatif yang akurat
+  // (laporan per-bulan tetap perlu saldo kas/bank SEJAK AWAL TAHUN s.d. akhir
+  // periode terpilih, bukan hanya transaksi dalam bulan itu saja)
+  const { data: bkuKumulatif = [], isLoading: loadingBKUKumulatif } = useBKU(undefined);
   const { data: bukuBank = [], isLoading: loadingBank } = useBukuBank(bulan);
   const { data: bukuKasTunai = [], isLoading: loadingTunai } = useBukuKasTunai(bulan);
   const { data: bukuPajak = [], isLoading: loadingPajak } = useBukuPajak(bulan);
@@ -43,7 +47,7 @@ export function useDataLaporan(bulan?: number) {
 
   const isLoading =
     loadingAPBDes || loadingAPBDesPAK || loadingMeta ||
-    loadingDPA || loadingBKU || loadingBank || loadingTunai ||
+    loadingDPA || loadingBKU || loadingBKUKumulatif || loadingBank || loadingTunai ||
     loadingPajak || loadingPajakRekap || loadingPanjar || loadingSPP || loadingSPJ || loadingPenerimaan || loadingDesa || loadingSaldoAwal;
 
   const pendapatanList: PendapatanItem[] = apbdes?.pendapatan ?? [];
@@ -104,8 +108,21 @@ export function useDataLaporan(bulan?: number) {
   const realisasiPembiayaan: Record<string, number> = {};
 
   // ─── Data Kekayaan Desa ───────────────────────────────────────
-  const lastBKU = bkuAll.length > 0 ? bkuAll[bkuAll.length - 1] as BKUItem : null;
-  const saldoKasAkhir = lastBKU?.saldo ?? 0;
+  // PENTING: saldoKasAkhir, saldoKasTunaiAkhir, dan saldoBankAkhir HARUS
+  // kumulatif sejak 1 Januari s.d. akhir periode terpilih — bukan running
+  // balance dari bkuAll yang sudah difilter per-bulan (yang hanya menghitung
+  // transaksi dalam bulan itu saja, mengabaikan saldo bulan-bulan sebelumnya).
+  // Gunakan bkuKumulatif (BKU tanpa filter bulan) yang dipotong di akhir periode.
+  const batasAkhirBulan = bulan
+    ? new Date(Number(tahun), bulan, 0).getTime() // hari terakhir bulan terpilih
+    : Infinity;
+  const bkuSampaiAkhirPeriode = bkuKumulatif.filter(
+    (b: BKUItem) => new Date(b.tanggal).getTime() <= batasAkhirBulan
+  );
+  const saldoKasAkhir = bkuSampaiAkhirPeriode.reduce(
+    (s: number, b: BKUItem) => s + b.penerimaan - b.pengeluaran,
+    0
+  );
 
   const hp = saldoAwal?.hutangPajak;
   const hutangPajakTotal = hp
@@ -119,12 +136,49 @@ export function useDataLaporan(bulan?: number) {
     .filter((b: BKUItem) => b.jenisRef === "penerimaan_tunai" || b.jenisRef === "penerimaan_bank")
     .reduce((s: number, b: BKUItem) => s + b.penerimaan, 0);
   const totalPengeluaranBKU = dicairkanSPP.reduce((s: number, spp: SPPItem) => s + spp.totalJumlah, 0);
-  // Estimasi saldo kas tunai & bank akhir berdasarkan saldo awal + arus
-  const tunaiRatio = (saldoKasTunaiAwal + saldoBankAwal) > 0
-    ? saldoKasTunaiAwal / (saldoKasTunaiAwal + saldoBankAwal)
-    : 0.5;
-  const saldoKasTunaiAkhir = Math.max(0, saldoKasAkhir * tunaiRatio);
-  const saldoBankAkhir = Math.max(0, saldoKasAkhir * (1 - tunaiRatio));
+
+  // Saldo kas tunai & bank akhir — dihitung AKURAT per-transaksi dengan logika
+  // field-based yang identik dengan useSaldoBank/useSaldoTunai (useBKU.ts)
+  // dan isRelevant (useBukuPembantu.ts). WAJIB tetap sinkron jika salah satu diubah.
+
+  function hitungSaldoMedia(items: BKUItem[], target: "bank" | "tunai"): number {
+    let saldo = 0;
+    for (const b of items) {
+      switch (b.jenisRef) {
+        case "saldo_awal":
+          if ((b.mediaPembayaran ?? "bank") === target) saldo += b.penerimaan;
+          break;
+        case "penerimaan_bank":
+          if (target === "bank") saldo += b.penerimaan;
+          break;
+        case "penerimaan_tunai":
+          if (target === "tunai") saldo += b.penerimaan;
+          break;
+        case "mutasi_kas":
+          if ((b.jenisPembayaran ?? "bank") === target) { saldo += b.penerimaan; saldo -= b.pengeluaran; }
+          break;
+        case "spp":
+          if ((b.mediaPembayaran ?? "bank") === target) saldo -= b.pengeluaran;
+          break;
+        case "spj_sisa_panjar":
+          if ((b.mediaPembayaran ?? "tunai") === target) saldo += b.penerimaan;
+          break;
+        case "spj_titipan_pajak":
+          if ((b.mediaPembayaran ?? "bank") === target) saldo += b.penerimaan;
+          break;
+        case "penyetoran_pajak":
+        case "penyetoran_hutang_pajak":
+          if ((b.jenisPembayaran ?? "bank") === target) saldo -= b.pengeluaran;
+          break;
+        default:
+          break;
+      }
+    }
+    return saldo;
+  }
+
+  const saldoKasTunaiAkhir = hitungSaldoMedia(bkuSampaiAkhirPeriode, "tunai");
+  const saldoBankAkhir = hitungSaldoMedia(bkuSampaiAkhirPeriode, "bank");
 
   return {
     tahun,

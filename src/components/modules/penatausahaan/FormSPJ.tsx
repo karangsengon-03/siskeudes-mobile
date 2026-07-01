@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from "@/components/ui/separator";
 import { useSPP } from "@/hooks/useSPP";
 import { useAddSPJ, useEditSPJ } from "@/hooks/useSPJ";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, parseDecimalId } from "@/lib/utils";
 import { PajakSPJ, SPPItem, SPJItem } from "@/lib/types";
 import { JENIS_PAJAK, getPajakByKode } from "@/lib/constants/pajak";
 import { toast } from "sonner";
@@ -84,7 +84,7 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
     : sppList.filter((s) => s.status === "dicairkan" && !s.nomorSPJ);
 
   const sppAktif: SPPItem | undefined = sppList.find((s) => s.id === sppId);
-  const realisasi = parseFloat(nilaiRealisasi) || 0;
+  const realisasi = parseDecimalId(nilaiRealisasi);
   const nilaiSPP = sppAktif?.totalJumlah ?? 0;
   const sisaPanjar = Math.max(0, nilaiSPP - realisasi);
   const realisasiMelebihi = realisasi > nilaiSPP;
@@ -122,7 +122,7 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
   }
 
   function ubahDPPManual(id: string, nilai: string) {
-    const dpp = parseFloat(nilai) || 0;
+    const dpp = parseDecimalId(nilai);
     setPajakList((prev) =>
       prev.map((p) => p.id === id ? { ...p, dasarPengenaan: nilai, jumlahPajak: hitungPajak(dpp, p.tarif) } : p)
     );
@@ -148,14 +148,14 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
   }
 
   const bisaSubmit = sppId !== "" && realisasi > 0 && !realisasiMelebihi &&
-    pajakList.every((p) => p.kode !== "" && parseFloat(p.dasarPengenaan) > 0);
+    pajakList.every((p) => p.kode !== "" && parseDecimalId(p.dasarPengenaan) > 0);
 
   async function handleKonfirmasi() {
     if (!sppAktif) return;
     setKonfirmOpen(false);
     const pajakRecord: Record<string, PajakSPJ> = {};
     pajakList.forEach((p) => {
-      pajakRecord[p.id] = { id: p.id, kode: p.kode, nama: p.nama, tarif: p.tarif, dasarPengenaan: parseFloat(p.dasarPengenaan), jumlahPajak: p.jumlahPajak };
+      pajakRecord[p.id] = { id: p.id, kode: p.kode, nama: p.nama, tarif: p.tarif, dasarPengenaan: parseDecimalId(p.dasarPengenaan), jumlahPajak: p.jumlahPajak };
     });
     try {
       if (editItem) {
@@ -246,7 +246,7 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
                   <Input
                     type="number" min={0} max={nilaiSPP} placeholder="0"
                     value={nilaiRealisasi}
-                    onChange={(e) => { setNilaiRealisasi(e.target.value); updateSemuaPajakDPP(parseFloat(e.target.value) || 0); }}
+                    onChange={(e) => { setNilaiRealisasi(e.target.value); updateSemuaPajakDPP(parseDecimalId(e.target.value)); }}
                   />
                   {realisasiMelebihi && (
                     <p className="text-xs text-destructive flex items-center gap-1">
@@ -365,14 +365,14 @@ export function FormSPJ({ open, onClose, editItem }: FormSPJProps) {
                                 ? `${formatRupiah(realisasi)} ÷ ${(1 + p.tarif).toFixed(2)}`
                                 : `${formatRupiah(realisasi)} × ${(p.tarif * 100).toFixed(0)}%`
                               }
-                              {" "}= <strong className="text-foreground">{formatRupiah(parseFloat(p.dasarPengenaan) || 0)}</strong>
+                              {" "}= <strong className="text-foreground">{formatRupiah(parseDecimalId(p.dasarPengenaan))}</strong>
                             </div>
                           )}
 
                           {p.jumlahPajak > 0 && (
                             <div className="flex justify-between text-xs bg-muted rounded px-2 py-1.5">
                               <span className="text-muted-foreground">
-                                {(p.tarif * 100).toFixed(1)}% × {formatRupiah(parseFloat(p.dasarPengenaan) || 0)}
+                                {(p.tarif * 100).toFixed(1)}% × {formatRupiah(parseDecimalId(p.dasarPengenaan))}
                               </span>
                               <span className="font-semibold text-rose-600">= {formatRupiah(p.jumlahPajak)}</span>
                             </div>
